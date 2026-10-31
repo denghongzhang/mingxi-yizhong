@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>明溪一中校史连连看 · 正在接入…</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
+    background:linear-gradient(160deg,#7a1f14 0%,#b8432e 55%,#e08a3c 100%);color:#fff;overflow:hidden;}
+  .wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:26px;}
+  .ring{width:54px;height:54px;border:5px solid rgba(255,255,255,.32);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:22px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  h1{font-size:21px;font-weight:800;letter-spacing:2px;margin:0 0 10px;text-shadow:0 2px 8px rgba(0,0,0,.25);}
+  p{font-size:14px;opacity:.92;margin:4px 0;line-height:1.7;}
+  .ln{margin-top:16px;font-size:13px;opacity:.8;min-height:18px;letter-spacing:.5px;}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ffe08a;margin:0 3px;animation:bl 1.1s infinite}
+  .dot:nth-child(2){animation-delay:.18s}.dot:nth-child(3){animation-delay:.36s}
+  @keyframes bl{0%,100%{opacity:.25}50%{opacity:1}}
+  .btns{display:none;margin-top:24px;flex-direction:column;gap:12px;width:248px;}
+  .btns a{display:block;padding:14px 0;border-radius:13px;font-size:15px;font-weight:700;text-decoration:none;color:#7a1f14;background:#fff;box-shadow:0 6px 16px rgba(0,0,0,.2);}
+  .btns a:active{transform:translateY(1px)}
+  .hint{display:none;margin-top:18px;font-size:11px;opacity:.62;max-width:290px;line-height:1.6;}
+  .brand{position:fixed;bottom:16px;left:0;width:100%;text-align:center;font-size:11px;letter-spacing:2px;opacity:.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ring" id="ring"></div>
+  <h1>正在为您接入最快线路</h1>
+  <p>系统正在自动选择最优游戏线路</p>
+  <div class="ln" id="ln"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="btns" id="btns">
+    <a id="bA" href="#">🟢 全球线路 · 浏览器直接玩</a>
+    <a id="bB" href="#">🟠 国内极速线路 · 下载即玩</a>
+  </div>
+  <div class="hint" id="hint">未自动跳转？请点上方按钮手动进入，两条线路内容完全一致。</div>
+</div>
+<div class="brand">明溪县第一中学 · 校史连连看</div>
+<script>
+const GH  = 'https://denghongzhang.github.io/mingxi-yizhong/mingxi.html';
+const COS = 'https://fafu-llk-1469780385.cos.ap-guangzhou.myqcloud.com/mingxi.html';
+const ln = document.getElementById('ln');
+function go(u){ try{ location.replace(u); }catch(e){ location.href = u; } }
+function manual(){
+  document.getElementById('ring').style.display='none';
+  document.getElementById('btns').style.display='flex';
+  document.getElementById('hint').style.display='block';
+  ln.innerHTML = '';
+  document.querySelector('h1').textContent = '请选择游戏线路';
+  document.querySelector('p').textContent = '自动接入超时，可手动进入';
+  document.getElementById('bA').href = GH;
+  document.getElementById('bB').href = COS;
+}
+/* 可达性探测：网络层成功即视为可达（no-cors 下不读取内容，仅看是否连得通） */
+function reachable(url, ms){
+  return new Promise(res=>{
+    let done=false;
+    const t=setTimeout(()=>{ if(!done){done=true;res(false);} }, ms);
+    fetch(url,{method:'HEAD',cache:'no-store',mode:'no-cors'})
+      .then(()=>{ if(!done){done=true;clearTimeout(t);res(true);} })
+      .catch(()=>{ if(!done){done=true;clearTimeout(t);res(false);} });
+  });
+}
+(async()=>{
+  try{
+    ln.textContent='① 正在检测「全球直玩线路」…';
+    if(await reachable(GH, 4500)){ go(GH); return; }
+    ln.textContent='② 全球线路较慢，切换「国内极速线路」…';
+    if(await reachable(COS, 4500)){ go(COS); return; }
+  }catch(e){}
+  manual();
+})();
+/* 兜底：11 秒仍未跳转则给出手动入口 */
+setTimeout(manual, 11000);
+</script>
+</body></html>
