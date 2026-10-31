@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>明溪一中校史连连看 · 正在接入…</title>
+<!-- 提前预热连接 + 预取游戏文档：解析阶段即开始，重定向时游戏已在缓存，秒开 -->
+<link rel="preconnect" href="https://denghongzhang.github.io">
+<link rel="dns-prefetch" href="https://fafu-llk-1469780385.cos.ap-guangzhou.myqcloud.com">
+<link rel="prefetch" as="document" href="https://denghongzhang.github.io/mingxi-yizhong/mingxi.html">
+<link rel="prefetch" as="document" href="https://fafu-llk-1469780385.cos.ap-guangzhou.myqcloud.com/mingxi.html">
 <style>
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
@@ -41,19 +46,21 @@
 const GH  = 'https://denghongzhang.github.io/mingxi-yizhong/mingxi.html';
 const COS = 'https://fafu-llk-1469780385.cos.ap-guangzhou.myqcloud.com/mingxi.html';
 const ln = document.getElementById('ln');
-function go(u){ try{ location.replace(u); }catch(e){ location.href = u; } }
+let decided=false;
+function go(u){ if(decided) return; decided=true; try{ location.replace(u); }catch(e){ location.href=u; } }
 function manual(){
+  if(decided) return; decided=true;
   document.getElementById('ring').style.display='none';
   document.getElementById('btns').style.display='flex';
   document.getElementById('hint').style.display='block';
-  ln.innerHTML = '';
-  document.querySelector('h1').textContent = '请选择游戏线路';
-  document.querySelector('p').textContent = '自动接入超时，可手动进入';
-  document.getElementById('bA').href = GH;
-  document.getElementById('bB').href = COS;
+  ln.innerHTML='';
+  document.querySelector('h1').textContent='请选择游戏线路';
+  document.querySelector('p').textContent='自动接入超时，可手动进入';
+  document.getElementById('bA').href=GH;
+  document.getElementById('bB').href=COS;
 }
 /* 可达性探测：网络层成功即视为可达（no-cors 下不读取内容，仅看是否连得通） */
-function reachable(url, ms){
+function probe(url, ms){
   return new Promise(res=>{
     let done=false;
     const t=setTimeout(()=>{ if(!done){done=true;res(false);} }, ms);
@@ -62,16 +69,19 @@ function reachable(url, ms){
       .catch(()=>{ if(!done){done=true;clearTimeout(t);res(false);} });
   });
 }
+/* 后台预取游戏文档：命中 HTTP 缓存后，重定向到该线路即秒开，免去 358KB 重新下载 */
+function prefetch(u){ try{ const l=document.createElement('link'); l.rel='prefetch'; l.as='document'; l.href=u; document.head.appendChild(l); }catch(e){} }
 (async()=>{
-  try{
-    ln.textContent='① 正在检测「全球直玩线路」…';
-    if(await reachable(GH, 4500)){ go(GH); return; }
-    ln.textContent='② 全球线路较慢，切换「国内极速线路」…';
-    if(await reachable(COS, 4500)){ go(COS); return; }
-  }catch(e){}
+  prefetch(GH); prefetch(COS);            // 双线文档同时预取（head 内已提前预热）
+  const cosP = probe(COS, 2200);          // 国内极速线先起
+  const ghP  = probe(GH, 2800);           // 全球直玩线（体验更优，优先）
+  const ghOk = await ghP;                 // 优先等全球线，最多 2.8s
+  if(ghOk){ go(GH); return; }
+  const cosOk = await cosP;               // 全球线不通时，国内线通常早已就绪 → 近乎瞬时
+  if(cosOk){ go(COS); return; }
   manual();
 })();
-/* 兜底：11 秒仍未跳转则给出手动入口 */
-setTimeout(manual, 11000);
+/* 兜底：8 秒仍未跳转则给出手动入口 */
+setTimeout(manual, 8000);
 </script>
 </body></html>
