@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>明溪一中校史连连看 · 线路选择</title>
+<style>
+  :root{
+    --suqu-red:#c0392b;      /* 苏区红 */
+    --shiquan-green:#2e7d5b; /* 石泉绿 */
+    --ink:#1f2a24;
+    --paper:#f6f1e7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(192,57,43,.12), transparent 60%),
+      radial-gradient(900px 500px at 100% 110%, rgba(46,125,91,.14), transparent 60%),
+      var(--paper);
+    color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100%;padding:28px 18px 36px;
+  }
+  .brand{
+    text-align:center;margin-bottom:6px;
+  }
+  .brand .seal{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:64px;height:64px;border-radius:14px;
+    background:linear-gradient(135deg,var(--suqu-red),#a3302599);
+    color:#fff;font-weight:800;font-size:26px;letter-spacing:2px;
+    box-shadow:0 10px 30px rgba(192,57,43,.25);
+  }
+  h1{font-size:24px;margin-top:14px;letter-spacing:1px;}
+  .sub{margin-top:6px;color:#6b7a70;font-size:14px;letter-spacing:.5px;}
+  .tip{
+    margin:18px 0 8px;font-size:13px;color:#8a958c;
+    background:#fff;border:1px dashed #d8d0c0;border-radius:12px;
+    padding:10px 14px;max-width:560px;line-height:1.6;text-align:center;
+  }
+  .grid{
+    width:100%;max-width:560px;display:grid;gap:16px;margin-top:10px;
+  }
+  .card{
+    position:relative;background:#fff;border-radius:18px;padding:20px 20px 18px;
+    box-shadow:0 12px 34px rgba(31,42,36,.10);border:1px solid #ece5d6;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:6px;
+  }
+  .card.a::before{background:var(--shiquan-green);}
+  .card.b::before{background:var(--suqu-red);}
+  .card .tag{
+    display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;
+    color:#fff;margin-bottom:10px;
+  }
+  .card.a .tag{background:var(--shiquan-green);}
+  .card.b .tag{background:var(--suqu-red);}
+  .card h2{font-size:18px;margin-bottom:6px;}
+  .card p{font-size:13px;color:#6b7a70;line-height:1.6;margin-bottom:14px;}
+  .btn{
+    display:block;width:100%;text-align:center;text-decoration:none;
+    padding:13px 16px;border-radius:12px;font-size:15px;font-weight:700;color:#fff;
+    transition:transform .08s ease, filter .15s ease;
+  }
+  .card.a .btn{background:linear-gradient(135deg,var(--shiquan-green),#245f47);}
+  .card.b .btn{background:linear-gradient(135deg,var(--suqu-red),#a33025);}
+  .btn:active{transform:scale(.98);filter:brightness(.95);}
+  .url{
+    margin-top:12px;font-size:11px;color:#9aa39c;word-break:break-all;line-height:1.5;
+    background:#f4efe4;border-radius:8px;padding:8px 10px;
+  }
+  footer{
+    margin-top:26px;font-size:12px;color:#9aa39c;text-align:center;line-height:1.7;max-width:560px;
+  }
+  footer b{color:#6b7a70;}
+</style>
+</head>
+<body>
+  <div class="brand">
+    <div class="seal">明</div>
+    <h1>明溪一中校史连连看</h1>
+    <div class="sub">双线路 · 任意切换 · 哪条顺畅用哪条</div>
+  </div>
+
+  <div class="tip">
+    如果某条线路打开慢或打不开，请直接点另一条。两条线路内容完全一致。
+  </div>
+
+  <div class="grid">
+    <div class="card a">
+      <span class="tag">主线路 · GitHub Pages</span>
+      <h2>浏览器直接玩</h2>
+      <p>无需下载，扫码/点击后在浏览器里直接开玩，体验最顺滑。国内个别网络可能偏慢，可切备用线路。</p>
+      <a class="btn" id="btnA" href="#">前往 GitHub Pages 直玩 →</a>
+      <div class="url" id="urlA">（部署后自动填入）</div>
+    </div>
+
+    <div class="card b">
+      <span class="tag">备用线路 · 腾讯云 COS</span>
+      <h2>下载后本地玩</h2>
+      <p>国内访问最快、最稳。点击后会下载一个 .html 文件，用手机/电脑浏览器打开即可游玩（单文件离线）。</p>
+      <a class="btn" id="btnB" href="https://fafu-llk-1469780385.cos.ap-guangzhou.myqcloud.com/mingxi.html">前往腾讯云下载 →</a>
+      <div class="url">https://fafu-llk-1469780385.cos.ap-guangzhou.myqcloud.com/mingxi.html</div>
+    </div>
+  </div>
+
+  <footer>
+    本页本身也同时发布在两条线路上，因此无论你从哪条线路进来，都能切换到另一条。<br>
+    <b>明溪一中校史连连看</b> · 基于真实公开校史资料制作
+  </footer>
+
+<script>
+  /* ===== 部署后把下面的 URL 改成真实的 GitHub Pages 地址即可 ===== */
+  var GITHUB_PAGES_URL = "https://__USERNAME__.github.io/__REPO__/mingxi.html";
+  (function(){
+    var a=document.getElementById('btnA'), ua=document.getElementById('urlA');
+    if(GITHUB_PAGES_URL.indexOf('__')===-1){
+      a.href=GITHUB_PAGES_URL; ua.textContent=GITHUB_PAGES_URL;
+    }
+  })();
+</script>
+</body>
+</html>
