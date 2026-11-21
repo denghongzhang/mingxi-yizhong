@@ -11813,6 +11813,13 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 (function(){
   var KEY='mx_content_v1', URL='data-mx.json';
   function log(){ try{ console.log('[内容热更新]', arguments[0]); }catch(e){} }
+  /* v157 · 统一生成可缓存内容快照（含全部外置字段） */
+  function snapshot(d){
+    return {version:d.version, data:{
+      levels:d.levels, alumni:d.alumni, tokenDesc:d.tokenDesc,
+      tracks:d.tracks, schoolTabs:d.schoolTabs, quiz:d.quiz, coolFacts:d.coolFacts
+    }};
+  }
   function applyData(d){
     var changed=false;
     try{
@@ -11832,6 +11839,34 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
         changed=true;
       }
     }catch(e){ log('alumni应用失败:'+e); }
+    /* v157 · 纯内容常量原地覆盖（无派生、直接读取，零风险） */
+    try{
+      if(d.tokenDesc && typeof TOKEN_DESC!=='undefined'){
+        Object.keys(TOKEN_DESC).forEach(function(k){ delete TOKEN_DESC[k]; });
+        Object.keys(d.tokenDesc).forEach(function(k){ TOKEN_DESC[k]=d.tokenDesc[k]; });
+        changed=true;
+      }
+    }catch(e){ log('tokenDesc应用失败:'+e); }
+    try{
+      if(d.tracks && d.tracks.length && typeof TRACKS!=='undefined'){
+        TRACKS.length=0; d.tracks.forEach(function(x){ TRACKS.push(x); }); changed=true;
+      }
+    }catch(e){ log('tracks应用失败:'+e); }
+    try{
+      if(d.schoolTabs && d.schoolTabs.length && typeof SCHOOL_TABS!=='undefined'){
+        SCHOOL_TABS.length=0; d.schoolTabs.forEach(function(x){ SCHOOL_TABS.push(x); }); changed=true;
+      }
+    }catch(e){ log('schoolTabs应用失败:'+e); }
+    try{
+      if(d.quiz && d.quiz.length && typeof QUIZ!=='undefined'){
+        QUIZ.length=0; d.quiz.forEach(function(x){ QUIZ.push(x); }); changed=true;
+      }
+    }catch(e){ log('quiz应用失败:'+e); }
+    try{
+      if(d.coolFacts && d.coolFacts.length && typeof COOL_FACTS!=='undefined'){
+        COOL_FACTS.length=0; d.coolFacts.forEach(function(x){ COOL_FACTS.push(x); }); changed=true;
+      }
+    }catch(e){ log('coolFacts应用失败:'+e); }
     if(changed){
       try{ if(typeof buildTimeline==='function') buildTimeline(); }catch(e){}
       try{ if(typeof buildYearGrid==='function') buildYearGrid(); }catch(e){}
@@ -11855,7 +11890,7 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
         try{ var c=JSON.parse(localStorage.getItem(KEY)||'null'); oldV=(c&&c.version)||0; }catch(e){}
         if((d.version||0)>oldV){
           applyData(d);
-          try{ localStorage.setItem(KEY, JSON.stringify({version:d.version, data:{levels:d.levels, alumni:d.alumni}})); }catch(e){}
+          try{ localStorage.setItem(KEY, JSON.stringify(snapshot(d))); }catch(e){}
           log('已联网更新到 v'+d.version);
           try{ if(typeof showToast==='function') showToast('📚 校史内容已更新至 v'+d.version); }catch(e){}
         }
@@ -11867,14 +11902,17 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
     refresh:function(){
       fetch(URL+'?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
         applyData(d);
-        try{ localStorage.setItem(KEY, JSON.stringify({version:d.version,data:{levels:d.levels,alumni:d.alumni}})); }catch(e){}
+        try{ localStorage.setItem(KEY, JSON.stringify(snapshot(d))); }catch(e){}
         if(typeof showToast==='function') showToast('📚 已强制刷新内容 v'+d.version);
       }).catch(function(){ if(typeof showToast==='function') showToast('离线，使用内置内容'); });
     },
     stat:function(){
-      var lv=0,al=0; try{ lv=LEVELS.length; }catch(e){} try{ al=Object.keys(ALUMNI).length; }catch(e){}
+      var lv=0,al=0,td=0,tk=0,qz=0,cf=0;
+      try{ lv=LEVELS.length; }catch(e){} try{ al=Object.keys(ALUMNI).length; }catch(e){}
+      try{ td=Object.keys(TOKEN_DESC).length; }catch(e){}
+      try{ tk=TRACKS.length; }catch(e){} try{ qz=QUIZ.length; }catch(e){} try{ cf=COOL_FACTS.length; }catch(e){}
       var v=0; try{ var c=JSON.parse(localStorage.getItem(KEY)||'null'); v=(c&&c.version)||0; }catch(e){}
-      return {levels:lv, alumni:al, cachedVersion:v};
+      return {levels:lv, alumni:al, tokenDesc:td, tracks:tk, quiz:qz, coolFacts:cf, cachedVersion:v};
     }
   };
 })();
@@ -11957,6 +11995,124 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   window.MX_AUDIO_CACHE={
     stat:function(cb){ load(function(r){ cb(r?{ver:r.ver, keys:Object.keys(r.b64||{}).length, verMatch:r.ver===ver()}:null); }); },
     clear:function(){ openDB(function(db){ try{ db.transaction(STORE,'readwrite').objectStore(STORE).delete(KEY); }catch(e){} }); }
+  };
+})();
+</script>
+
+
+<style>
+/* v157 自检·存档面板 */
+#ovSave .save-panel{max-width:460px; text-align:left;}
+#ovSave .sv-sec{margin:10px 0 6px; font-weight:800; color:var(--red); font-size:15px;}
+#ovSave .sv-grid{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px;}
+#ovSave .sv-item{background:rgba(240,230,205,.55); border:1px solid rgba(160,138,99,.25); border-radius:8px; padding:7px 9px; font-size:12.5px; line-height:1.5;}
+#ovSave .sv-item b{color:#8a5a2b;}
+#ovSave .sv-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+#ovSave .sv-dot.on{background:#2e9e57;} #ovSave .sv-dot.off{background:#c0392b;} #ovSave .sv-dot.wait{background:#d99b2b;}
+#ovSave .sv-btns{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 4px;}
+#ovSave .sv-btn{flex:1 1 46%; min-width:120px; padding:10px; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; color:#fff; background:linear-gradient(135deg,#b5482f,#8a3524);}
+#ovSave .sv-btn.alt{background:linear-gradient(135deg,#3a7d5c,#245c42);}
+#ovSave .sv-note{font-size:11px; color:#8a7456; line-height:1.6; margin-top:8px;}
+#ovSave input[type=file]{display:none;}
+</style>
+<div class="overlay" id="ovSave"><div class="panel save-panel">
+  <h2>🩺 运行自检 · 存档备份</h2>
+  <div class="sv-sec">📊 运行状态</div>
+  <div class="sv-grid" id="svGrid"><div class="sv-item">检测中…</div></div>
+  <div class="sv-sec">💾 存档管理</div>
+  <div class="sv-btns">
+    <button class="sv-btn" id="svExport">⬇ 导出存档</button>
+    <button class="sv-btn alt" id="svImportBtn">⬆ 导入存档</button>
+  </div>
+  <input type="file" id="svImportFile" accept=".json,application/json" />
+  <div class="sv-note">
+    存档包含你的全部学习进度（关卡/积分/杉杉养成/图鉴/签到等），保存在本机浏览器。<br/>
+    <b>导出</b>可备份到文件；<b>导入</b>可恢复到另一台设备或换浏览器。<br/>
+    ⚠️ 导入会覆盖当前进度，请先导出备份。内容版本由联网自动更新，断网时用内置副本照常可玩。
+  </div>
+  <div class="btn-row"><button class="close" id="svClose">关 闭</button></div>
+</div></div>
+<script>
+/* ===== v157 自检面板 + 存档导出导入（合并 P0-④ 与 P1-③，单一入口不遮挡主界面） ===== */
+(function(){
+  // 1) 在工具栏插入入口按钮
+  try{
+    var anchor=document.getElementById('btnBgm');
+    if(anchor && anchor.parentNode && !document.getElementById('btnSave')){
+      var btn=document.createElement('button');
+      btn.className='tb-btn'; btn.id='btnSave'; btn.textContent='🩺自检·存档';
+      anchor.parentNode.insertBefore(btn, anchor.nextSibling);
+      btn.onclick=function(){ openOv('ovSave'); renderStatus(); };
+    }
+  }catch(e){}
+  try{ document.getElementById('svClose').onclick=function(){ closeOv('ovSave'); }; }catch(e){}
+  // 2) 渲染运行状态（复用 MX_CONTENT.stat / MX_AUDIO_CACHE.stat）
+  function item(label,val,dot){
+    return '<div class="sv-item">'+(dot?'<span class="sv-dot '+dot+'"></span>':'')+label+'：<b>'+val+'</b></div>';
+  }
+  function renderStatus(){
+    var grid=document.getElementById('svGrid'); if(!grid) return;
+    var cs={levels:'?',alumni:'?',tokenDesc:'?',tracks:'?',quiz:'?',coolFacts:'?',cachedVersion:0};
+    try{ if(window.MX_CONTENT&&MX_CONTENT.stat) cs=MX_CONTENT.stat(); }catch(e){}
+    var online=navigator.onLine?'已联网':'离线';
+    var netDot=navigator.onLine?'on':'off';
+    var offlineVoice='未加载', voiceDot='wait';
+    function paintVoice(){
+      grid.innerHTML =
+        item('内容包版本','v'+(cs.cachedVersion||0),'on')+
+        item('网络状态',online,netDot)+
+        item('关卡 / 人物',(cs.levels||0)+' / '+(cs.alumni||0))+
+        item('问答 / 冷知识',(cs.quiz||0)+' / '+(cs.coolFacts||0))+
+        item('名词释义 / 轨道',(cs.tokenDesc||0)+' / '+(cs.tracks||0))+
+        item('离线语音包',offlineVoice,voiceDot);
+    }
+    paintVoice();
+    try{
+      if(window.MX_AUDIO_CACHE&&MX_AUDIO_CACHE.stat){
+        MX_AUDIO_CACHE.stat(function(r){
+          offlineVoice = r?('已缓存 '+r.keys+' 段'):'未下载';
+          voiceDot = r?'on':'wait';
+          paintVoice();
+        });
+      }
+    }catch(e){}
+  }
+  window.addEventListener('online',function(){ if(document.getElementById('ovSave').classList.contains('show')) renderStatus(); });
+  window.addEventListener('offline',function(){ if(document.getElementById('ovSave').classList.contains('show')) renderStatus(); });
+  // 3) 导出：收集全部 localStorage 键
+  document.getElementById('svExport').onclick=function(){
+    try{
+      var data={};
+      for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); data[k]=localStorage.getItem(k); }
+      var payload={_app:'mingxi-llk',_ver:1,_at:new Date().toISOString(),data:data};
+      var blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      var d=new Date(); var stamp=d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2)+'_'+('0'+d.getHours()).slice(-2)+('0'+d.getMinutes()).slice(-2);
+      a.href=url; a.download='明中校史_存档_'+stamp+'.json'; document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },500);
+      if(typeof showToast==='function') showToast('✅ 存档已导出（'+Object.keys(data).length+' 项）');
+    }catch(e){ if(typeof showToast==='function') showToast('导出失败：'+e.message); }
+  };
+  // 4) 导入：校验 → 确认 → 写入 → 重载
+  var fileInput=document.getElementById('svImportFile');
+  document.getElementById('svImportBtn').onclick=function(){ fileInput.click(); };
+  fileInput.onchange=function(){
+    var f=fileInput.files&&fileInput.files[0]; if(!f) return;
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var p=JSON.parse(reader.result);
+        if(!p || p._app!=='mingxi-llk' || !p.data || typeof p.data!=='object') throw new Error('不是有效的明中存档文件');
+        var cnt=Object.keys(p.data).length;
+        if(!confirm('将恢复 '+cnt+' 项存档并覆盖当前进度，确定继续？\n建议先导出当前存档备份。')) return;
+        Object.keys(p.data).forEach(function(k){ try{ localStorage.setItem(k,p.data[k]); }catch(e){} });
+        if(typeof showToast==='function') showToast('✅ 存档已导入，即将重新加载');
+        setTimeout(function(){ location.reload(); },900);
+      }catch(e){ if(typeof showToast==='function') showToast('导入失败：'+e.message); }
+    };
+    reader.readAsText(f);
+    fileInput.value='';
   };
 })();
 </script>
