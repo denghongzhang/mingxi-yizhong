@@ -53,11 +53,11 @@
 <a class="mini" href="?manual=1">线路选择</a>
 <script>
 /* ============ 通道清单（全部为 v154 最新版，MD5 一致） ============ */
+/* 注意：jsdelivr 对 .html 返回 text/plain，浏览器当纯文本显示、无法运行游戏，故不作为可跳转通道。
+   GitHub Pages 是微信内唯一免确认且能正确渲染的通道；CloudBase 国内快但微信需点一次“确定访问”。 */
 var CHANNELS = [
   { id:'gh',  icon:'🟢', name:'主线路 · GitHub Pages', desc:'微信免确认直接打开 · 全球加速',
     url:'https://denghongzhang.github.io/mingxi-yizhong/mingxi.html', mode:'cors', wxOK:true },
-  { id:'jsd', icon:'🔵', name:'备用线路 · CDN 加速', desc:'国内节点镜像 · 微信免确认',
-    url:'https://cdn.jsdelivr.net/gh/denghongzhang/mingxi-yizhong@main/mingxi.html', mode:'cors', wxOK:true },
   { id:'cb',  icon:'🟠', name:'备用线路 · 腾讯云', desc:'国内最快 · 微信内需点一次“确定访问”',
     url:'https://byt-d2g8u4ybu5bd46c4f-1469780385.tcloudbaseapp.com/mingxi.html', mode:'nocors', wxOK:false },
 ];
@@ -85,12 +85,19 @@ function probe(ch, budget){
   return new Promise(function(resolve){
     var timer = setTimeout(function(){ resolve({ch:ch, ok:false, ms:budget}); }, budget);
     if(ch.mode === 'cors'){
+      // 用 Range 只取前 4KB（含 <title>），避免下载整个 1.6MB 导致探测超时误判
       fetch(ch.url + (ch.url.indexOf('?')<0?'?':'&') + 't=' + Date.now(),
-            {method:'GET', cache:'no-store', mode:'cors'})
-        .then(function(r){ if(!r.ok) throw 0; return r.text(); })
+            {method:'GET', cache:'no-store', mode:'cors', headers:{Range:'bytes=0-4000'}})
+        .then(function(r){
+          if(!r.ok && r.status !== 206) throw 0;
+          var ct = (r.headers.get('content-type') || '').toLowerCase();
+          // 必须确实是 HTML；像 jsdelivr 的 text/plain 不能作为可跳转通道
+          if(ct.indexOf('text/html') < 0) throw 0;
+          return r.text();
+        })
         .then(function(txt){
           clearTimeout(timer);
-          var ok = /连连看|杉杉|canvas|<board|游戏/i.test(txt);
+          var ok = /连连看|杉杉|<title|canvas|游戏/i.test(txt);
           resolve({ch:ch, ok:ok, ms:performance.now()-t0});
         })
         .catch(function(){ clearTimeout(timer); resolve({ch:ch, ok:false, ms:budget}); });
