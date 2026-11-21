@@ -11802,5 +11802,164 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   ].join('\n');
   var s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
 })();</script>
+
+<script>
+/* ===== v156 内容热更新覆盖层：外置 JSON 覆盖题库/人物，断网100%可玩 =====
+   设计：内联 LEVELS/ALUMNI 是离线基石，永不移除。
+   - 启动即从 localStorage 恢复上次缓存（若有）→ 无网也能用最近内容
+   - 后台 fetch data-mx.json：版本更新才应用+缓存；失败/断网静默跳过
+   - 应用时"原地改写"数组/对象（const 不能整体赋值，但内容与可枚举属性可变）
+*/
+(function(){
+  var KEY='mx_content_v1', URL='data-mx.json';
+  function log(){ try{ console.log('[内容热更新]', arguments[0]); }catch(e){} }
+  function applyData(d){
+    var changed=false;
+    try{
+      if(d.levels && d.levels.length && typeof LEVELS!=='undefined'){
+        // 原地替换关卡内容，保留引用（_i 由主逻辑重建）
+        LEVELS.length=0;
+        for(var i=0;i<d.levels.length;i++) LEVELS.push(d.levels[i]);
+        LEVELS.forEach(function(l,i){ l._i=i; });
+        try{ TOTAL_LEVELS=LEVELS.length; }catch(e){}
+        changed=true;
+      }
+    }catch(e){ log('levels应用失败:'+e); }
+    try{
+      if(d.alumni && typeof ALUMNI!=='undefined'){
+        Object.keys(ALUMNI).forEach(function(k){ delete ALUMNI[k]; });
+        Object.keys(d.alumni).forEach(function(k){ ALUMNI[k]=d.alumni[k]; });
+        changed=true;
+      }
+    }catch(e){ log('alumni应用失败:'+e); }
+    if(changed){
+      try{ if(typeof buildTimeline==='function') buildTimeline(); }catch(e){}
+      try{ if(typeof buildYearGrid==='function') buildYearGrid(); }catch(e){}
+      try{ if(typeof buildTrackTabs==='function') buildTrackTabs(); }catch(e){}
+      try{ if(typeof loadLevel==='function') loadLevel(); }catch(e){}
+    }
+    return changed;
+  }
+  // ① 同步恢复本地缓存（保证断网/首次渲染即用最近内容）
+  try{
+    var cache=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(cache && cache.data && applyData(cache.data)) log('已从本地缓存恢复 v'+(cache.version||'?'));
+  }catch(e){}
+  // ② 后台联网校验更新（不阻塞渲染）
+  try{
+    fetch(URL+'?t='+Date.now(),{cache:'no-store'})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(!d || !d.levels) return;
+        var oldV=0;
+        try{ var c=JSON.parse(localStorage.getItem(KEY)||'null'); oldV=(c&&c.version)||0; }catch(e){}
+        if((d.version||0)>oldV){
+          applyData(d);
+          try{ localStorage.setItem(KEY, JSON.stringify({version:d.version, data:{levels:d.levels, alumni:d.alumni}})); }catch(e){}
+          log('已联网更新到 v'+d.version);
+          try{ if(typeof showToast==='function') showToast('📚 校史内容已更新至 v'+d.version); }catch(e){}
+        }
+      })
+      .catch(function(){ /* 断网：静默，内联/缓存已保证可玩 */ });
+  }catch(e){}
+  // 暴露手动入口，便于自检/强制刷新
+  window.MX_CONTENT={
+    refresh:function(){
+      fetch(URL+'?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+        applyData(d);
+        try{ localStorage.setItem(KEY, JSON.stringify({version:d.version,data:{levels:d.levels,alumni:d.alumni}})); }catch(e){}
+        if(typeof showToast==='function') showToast('📚 已强制刷新内容 v'+d.version);
+      }).catch(function(){ if(typeof showToast==='function') showToast('离线，使用内置内容'); });
+    },
+    stat:function(){
+      var lv=0,al=0; try{ lv=LEVELS.length; }catch(e){} try{ al=Object.keys(ALUMNI).length; }catch(e){}
+      var v=0; try{ var c=JSON.parse(localStorage.getItem(KEY)||'null'); v=(c&&c.version)||0; }catch(e){}
+      return {levels:lv, alumni:al, cachedVersion:v};
+    }
+  };
+})();
+</script>
+
+
+<script>
+/* ===== v156 语音包持久化：下载一次落 IndexedDB，刷新/断网自动恢复，不再重下13.9MB =====
+   降级：IndexedDB 不可用/配额不足时静默失败，回退原"每次点按钮下载"逻辑，不影响游戏。
+*/
+(function(){
+  var DB='mx_voice_cache', STORE='bundle', KEY='audio';
+  function ver(){ try{ return AUDIO_BUNDLE_URL; }catch(e){ return 'bundle_v1.js?v=4'; } }
+  function openDB(cb){
+    try{
+      var rq=indexedDB.open(DB,1);
+      rq.onupgradeneeded=function(){ try{ var db=rq.result; if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE); }catch(e){} };
+      rq.onsuccess=function(){ cb(rq.result); };
+      rq.onerror=function(){ cb(null); };
+    }catch(e){ cb(null); }
+  }
+  function load(cb){
+    openDB(function(db){
+      if(!db){ cb(null); return; }
+      try{
+        var tx=db.transaction(STORE,'readonly'), rq=tx.objectStore(STORE).get(KEY);
+        rq.onsuccess=function(){ cb(rq.result||null); };
+        rq.onerror=function(){ cb(null); };
+      }catch(e){ cb(null); }
+    });
+  }
+  function save(obj){
+    openDB(function(db){
+      if(!db) return;
+      try{ var tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(obj,KEY); }
+      catch(e){ try{ console.log('[语音缓存] 落盘失败(配额?):',e); }catch(_){} }
+    });
+  }
+  // 启动自动恢复：有缓存且版本匹配 → 直接注入并开启离线语音
+  load(function(rec){
+    if(rec && rec.ver===ver() && rec.b64){
+      window.AUDIO_B64=rec.b64;
+      try{ inlineVoiceOn=true; }catch(e){}
+      try{
+        var btn=document.getElementById('btnOffline');
+        if(btn){ btn.classList.add('mute'); if(typeof setOfflineLabel==='function') setOfflineLabel(); }
+      }catch(e){}
+      try{ console.log('[语音缓存] 已从本地恢复离线语音包'); }catch(e){}
+    }
+  });
+  // 覆盖"离线包"按钮：下载成功后落盘
+  var btn=document.getElementById('btnOffline');
+  if(btn){
+    btn.onclick=function(){
+      var b=this;
+      try{
+        if(inlineVoiceOn){
+          inlineVoiceOn=false; b.classList.remove('mute'); setOfflineLabel();
+          showToast(L('tOnlineVoice','已切回在线语音')); return;
+        }
+        if(window.AUDIO_B64){
+          inlineVoiceOn=true; b.classList.add('mute'); setOfflineLabel();
+          showToast(L('tOfflineReady','离线语音包已就绪，可断网使用')); return;
+        }
+        if(_bundleLoading){ showToast(L('tOfflineLoading2','离线语音包加载中…')); return; }
+        _bundleLoading=true; setOfflineLabel(); showToast(L('tOfflineLoading','正在下载离线语音包（约14MB，仅首次）…'));
+        var sc=document.createElement('script');
+        sc.src=AUDIO_BUNDLE_URL;
+        sc.onload=function(){
+          inlineVoiceOn=true; _bundleLoading=false; b.classList.add('mute'); setOfflineLabel();
+          showToast(L('tOfflineReady','离线语音包已就绪，可断网使用'));
+          if(window.AUDIO_B64) save({ver:ver(), b64:window.AUDIO_B64});
+        };
+        sc.onerror=function(){ _bundleLoading=false; setOfflineLabel(); showToast(L('tOfflineFail','离线语音包加载失败，请检查网络')); };
+        document.head.appendChild(sc);
+      }catch(e){ _bundleLoading=false; }
+    };
+  }
+  // 自检入口
+  window.MX_AUDIO_CACHE={
+    stat:function(cb){ load(function(r){ cb(r?{ver:r.ver, keys:Object.keys(r.b64||{}).length, verMatch:r.ver===ver()}:null); }); },
+    clear:function(){ openDB(function(db){ try{ db.transaction(STORE,'readwrite').objectStore(STORE).delete(KEY); }catch(e){} }); }
+  };
+})();
+</script>
+
 </body>
 </html>
