@@ -1,0 +1,40 @@
+# 明中校史连连看 · GitHub Pages 自动部署
+# 用法：把本 .github 目录整个复制到 mingxi-yizhong 仓库根目录。
+# 之后每次 push 到 main，自动发布到 GitHub Pages，无需任何授权、无需外部配合。
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # 允许在 Actions 页面手动触发
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传站点文件
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .   # 仓库根目录即站点根（mingxi.html / hub.html / data-mx.json 都在根）
+
+      - name: 发布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
