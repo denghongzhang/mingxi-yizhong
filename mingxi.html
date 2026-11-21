@@ -12387,5 +12387,108 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 })();
 </script>
 
+<script>
+/* ============================================================
+   v160 · 语音修复：微信内朗读无声音 + 杉杉语音互动统一
+   根因：微信/安卓 WebView 的 speechSynthesis 无中文语音包，speak() 静默失败。
+   方案：① 资讯朗读优先播本关预录女声 mp3（已验证微信可靠、COS 123KB 真音频）
+        ② 保留设备 TTS 作兜底；③ 任意文本(洞天福地等)用百度在线 TTS 兜底
+        ④ 全程可停止、播完复位按钮，不影响断网可玩。
+   ============================================================ */
+(function(){
+  var __origSpeakTTS = (typeof window.speakTTS==='function') ? window.speakTTS : null;
+  var __netAudio = null;      /* 在线兜底 Audio */
+  var __readBtn = null;       /* 当前朗读按钮，用于复位 */
+  var __readSeq = 0;          /* 播放序号，防止旧回调复位新状态 */
+
+  /* 判断设备 TTS 是否有可用中文语音包 */
+  function hasZhVoice(){
+    try{
+      var vs = (window.speechSynthesis && speechSynthesis.getVoices && speechSynthesis.getVoices())||[];
+      return vs.some(function(v){ return /zh|cmn|Chinese|中文|普通话/i.test((v.lang||'')+(v.name||'')); });
+    }catch(e){ return false; }
+  }
+  function stopNetAudio(){
+    __readSeq++;
+    try{ if(__netAudio){ __netAudio.pause(); __netAudio.onended=null; __netAudio.onerror=null; __netAudio=null; } }catch(e){}
+    try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+  }
+  function resetReadBtn(){
+    try{ if(__readBtn){ __readBtn.classList.remove('on'); __readBtn.textContent='🔊 女声朗读'; __readBtn=null; } }catch(e){}
+  }
+  /* 百度在线 TTS：任意中文文本兜底（实测 audio/mpeg 可用） */
+  function speakOnline(text, gender, btn, seq){
+    try{
+      stopNetAudio._seq = seq;
+      var url='https://fanyi.baidu.com/gettts?lan=zh&text='+encodeURIComponent(String(text).slice(0,200))
+              +'&spd=5&source=web&per='+(gender==='male'?0:1);
+      var a=new Audio(url); __netAudio=a;
+      a.onended=function(){ if(seq===__readSeq){ __netAudio=null; if(btn) resetReadBtn(); } };
+      a.onerror=function(){ if(seq===__readSeq){ __netAudio=null; if(btn) resetReadBtn();
+        if(window.showToast) showToast('网络朗读暂不可用，请检查网络'); } };
+      var p=a.play();
+      if(p&&p.catch) p.catch(function(){ if(seq===__readSeq){ if(btn) resetReadBtn(); } });
+      return true;
+    }catch(e){ if(btn) resetReadBtn(); return false; }
+  }
+
+  /* 增强全局 speakTTS：设备 TTS 无中文包时，改走在线中文音频（微信可靠） */
+  window.speakTTS = function(text, gender){
+    text = String(text==null?'':text).trim(); if(!text) return;
+    gender = gender||'female';
+    try{ stopNetAudio(); }catch(e){}
+    if(hasZhVoice() && __origSpeakTTS){
+      try{ __origSpeakTTS(text, gender); return; }catch(e){}
+    }
+    /* 无中文语音包：在线中文 TTS 兜底（不再静默） */
+    speakOnline(text, gender, null, __readSeq);
+  };
+
+  /* 重绑资讯朗读按钮：本关简介有预录女声 mp3，优先播放（微信可靠、播完精确复位） */
+  function bindRecapRead(){
+    var rb=document.getElementById('rtRead'); if(!rb || rb.dataset.v160) return;
+    rb.dataset.v160='1';
+    rb.onclick=function(){
+      var btn=this;
+      try{
+        if(btn.classList.contains('on')){ stopNetAudio(); resetReadBtn(); return; }
+        __readBtn=btn; var seq=++__readSeq;
+        btn.classList.add('on'); btn.textContent='⏹ 停止朗读';
+        var lv=null; try{ lv=LEVELS[curIdx]; }catch(e){}
+        var bodyTxt=(document.getElementById('recapBody')||{}).textContent||'';
+        var full=(lv?lv.name+'。':'')+bodyTxt;
+        /* 优先：本关预录女声简介（COS mp3，微信可靠、断网可缓存）。
+           直接 playExtClip 拿 onended 回调，播完精确复位按钮；显式朗读不受 voiceOn 开关限制。 */
+        var clipKey=lv ? clipKeyFor(lv,'female') : '';
+        var usedPrerecorded=false;
+        if(clipKey && typeof playExtClip==='function'){
+          try{
+            stopNetAudio();
+            usedPrerecorded=true;
+            playExtClip(clipKey).then(function(ok){
+              if(seq!==__readSeq) return;             /* 已被新播放/停止取代 */
+              if(ok){ resetReadBtn(); }                /* 预录播完，精确复位 */
+              else { speakOnline(full,'female',btn,seq); } /* 预录失败→在线兜底 */
+            });
+          }catch(e){ usedPrerecorded=false; }
+        }
+        if(!usedPrerecorded) speakOnline(full,'female',btn,seq);
+      }catch(e){ resetReadBtn(); }
+    };
+  }
+  function boot(){
+    bindRecapRead();
+    /* 面板动态重建后补绑 */
+    setTimeout(bindRecapRead, 700);
+  }
+  boot();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else setTimeout(boot,300);
+  window.MX_VOICE_FIX={ stat:function(){
+    return {zhVoice:hasZhVoice(), origTTS:!!__origSpeakTTS, onlineFallback:true,
+            audioB64:!!(window.AUDIO_B64&&Object.keys(window.AUDIO_B64).length)};
+  }};
+})();
+</script>
+
 </body>
 </html>
