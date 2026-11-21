@@ -12117,5 +12117,133 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 })();
 </script>
 
+<!-- ============ v158 · 纠错回流：微信内可用的无需后端方案 + 邮件结构化 ============ -->
+<script>
+(function(){
+  if(window.__MX_FB_V158) return;
+  window.__MX_FB_V158=true;
+
+  function appVer(){
+    try{
+      if(window.MX_CONTENT && MX_CONTENT.stat){
+        var s=MX_CONTENT.stat();
+        if(s && s.version) return 'v158 · 内容包 v'+s.version;
+      }
+    }catch(e){}
+    return 'v158';
+  }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function stamp(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+
+  /* 生成结构化文本：邮件正文与剪贴板共用 */
+  function buildFeedbackText(){
+    var list = (typeof mxFeedback!=='undefined' && mxFeedback) ? mxFeedback : [];
+    if(!list.length) return '';
+    var lines = list.map(function(f,i){
+      var sc='总体/其他';
+      try{ if(f.school && typeof MX_SCHOOL_MAP!=='undefined' && MX_SCHOOL_MAP[f.school]) sc=MX_SCHOOL_MAP[f.school].name; }catch(e){}
+      var d=new Date(f.t); var ts=isNaN(d.getTime())?'':stamp(d);
+      return (i+1)+'. 【'+sc+'】'+(ts?ts+' · ':'')+f.msg+(f.contact?('（联系方式：'+f.contact+'）'):'');
+    });
+    var counts={};
+    list.forEach(function(f){
+      var sc='总体/其他';
+      try{ if(f.school && typeof MX_SCHOOL_MAP!=='undefined' && MX_SCHOOL_MAP[f.school]) sc=MX_SCHOOL_MAP[f.school].name; }catch(e){}
+      counts[sc]=(counts[sc]||0)+1;
+    });
+    var dist=Object.keys(counts).map(function(k){ return k+'×'+counts[k]; }).join('、');
+    var head='明中·校史连连看 — 校史纠错/校友留言\n'
+      +'提交时间：'+stamp(new Date())+'\n'
+      +'应用版本：'+appVer()+'\n'
+      +'留言条数：'+list.length+' 条（'+dist+'）\n'
+      +'————————————————————\n';
+    return head+lines.join('\n\n')+'\n\n————————————————————\n请开发者核对后更新 data-mx.json 并升版本号。';
+  }
+
+  /* 覆盖邮件提交：结构化正文 */
+  window.mxMailFeedback=function(){
+    var txt=buildFeedbackText();
+    if(!txt){ try{showToast('暂无留言可发送');}catch(e){} return; }
+    var n=(typeof mxFeedback!=='undefined'&&mxFeedback)?mxFeedback.length:0;
+    var subj=encodeURIComponent('明中校史纠错·校友留言（'+n+'条 · '+appVer()+'）');
+    try{
+      location.href='mailto:591253892@qq.com?subject='+subj+'&body='+encodeURIComponent(txt);
+      showToast('已唤起邮件 · 微信内若无反应请用「复制内容」');
+    }catch(e){ showToast('邮件唤起失败，请用「复制内容」'); }
+  };
+
+  /* 复制：clipboard API + execCommand 双保险，兼容微信内置浏览器 */
+  function fallbackCopy(text){
+    var ta=document.createElement('textarea');
+    ta.value=text; ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0,ta.value.length);
+    var ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+    try{ showToast(ok?'已复制 · 可粘贴到微信/邮件发给开发者':'复制失败，请长按文字手动复制'); }catch(e){}
+  }
+  function copyFeedback(){
+    var txt=buildFeedbackText();
+    if(!txt){ try{showToast('暂无留言可复制');}catch(e){} return; }
+    if(navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext){
+      navigator.clipboard.writeText(txt).then(function(){
+        try{ showToast('已复制 · 可粘贴到微信/邮件发给开发者'); }catch(e){}
+      }).catch(function(){ fallbackCopy(txt); });
+    } else { fallbackCopy(txt); }
+  }
+  window.mxCopyFeedback=copyFeedback;
+
+  /* 注入按钮 + 更新提示；幂等 */
+  function inject(){
+    var rowEl=document.querySelector('#ovFeedback .fb-row');
+    if(rowEl && !document.getElementById('btnFeedbackCopy')){
+      var mail=document.getElementById('btnFeedbackMail');
+      var btn=document.createElement('button');
+      btn.className='v-btn s'; btn.id='btnFeedbackCopy'; btn.textContent='📋 复制内容';
+      btn.onclick=copyFeedback;
+      if(mail && mail.parentNode===rowEl) rowEl.insertBefore(btn,mail); else rowEl.appendChild(btn);
+      rowEl.style.flexWrap='wrap';
+      Array.prototype.forEach.call(rowEl.querySelectorAll('.close,.v-btn'),function(b){ b.style.flex='1 1 calc(50% - 4px)'; });
+    }
+    var tip=document.querySelector('#ovFeedback .fb-tip');
+    if(tip && !tip.dataset.v158){
+      tip.innerHTML='留言保存在你本机浏览器。提交核对：点「📋复制内容」把整理好的文本粘贴到微信或邮件发给开发者（微信内「发送至邮箱」可能无反应，推荐用复制方式）。';
+      tip.dataset.v158='1';
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',inject); else inject();
+  /* 每次打开面板再补一次，防止动态重建 */
+  if(typeof window.mxOpenFeedback==='function'){
+    var origOpen=window.mxOpenFeedback;
+    window.mxOpenFeedback=function(){ try{ origOpen.apply(this,arguments); }finally{ inject(); } };
+  }
+
+  /* v158② 自检面板显示「本机纠错/留言 N 条」（存档已含 mx_feedback，可随导出迁移）
+     renderStatus 会重写 svGrid，故用 MutationObserver 幂等追加，追加时临时断开避免自触发循环。 */
+  function feedbackCount(){
+    try{ var a=JSON.parse(localStorage.getItem('mx_feedback')||'[]'); return (a&&a.length)||0; }catch(e){ return 0; }
+  }
+  function appendFbStat(){
+    var grid=document.getElementById('svGrid'); if(!grid) return;
+    if(grid.querySelector('.sv-fb')) return;               // 幂等：已追加则跳过
+    var n=feedbackCount();
+    var d=document.createElement('div');
+    d.className='sv-item sv-fb';
+    d.innerHTML='本机纠错/留言：<b>'+n+'</b> 条 <span style="opacity:.6;font-weight:400">（随存档导出）</span>';
+    grid.appendChild(d);
+  }
+  var svGrid=document.getElementById('svGrid');
+  if(svGrid && window.MutationObserver){
+    var mo=new MutationObserver(function(){ mo.disconnect(); try{ appendFbStat(); }finally{ mo.observe(svGrid,{childList:true}); } });
+    mo.observe(svGrid,{childList:true});
+    appendFbStat();
+  }
+  /* 面板打开时兜底补一次 */
+  var svBtn=document.getElementById('btnSave');
+  if(svBtn){ var oc=svBtn.onclick; svBtn.onclick=function(){ try{ if(oc) oc.apply(this,arguments); }finally{ setTimeout(appendFbStat,50); } }; }
+})();
+</script>
+
 </body>
 </html>
