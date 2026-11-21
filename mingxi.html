@@ -11756,5 +11756,51 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   ].join('\n');
   var s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
 })();</script>
+
+<!-- ============ v155 · 矿区排版整齐化：等宽网格 + 对称头部 + 收紧矿脉 ============ -->
+<script>
+(function(){
+  var css=[
+    '/* ===== v155 矿区整块：统一内边距 ===== */',
+    '.mx-gz{ padding:6px 8px 5px !important; }',
+    '/* 1) 头部：左右两块垂直居中对齐；左组贴左、杉杉组贴右 */',
+    '.mx-gz-head{ align-items:center !important; gap:7px !important; min-height:34px !important; }',
+    '.mx-gz-badge{ width:32px !important; height:32px !important; flex-basis:32px !important; }',
+    '.mx-gz-badge svg{ width:25px !important; height:25px !important; }',
+    '.mx-gz-id{ min-width:64px !important; line-height:1.12 !important; }',
+    '.mx-gz-name{ font-size:13px !important; }',
+    '.mx-gz-prog{ font-size:9px !important; margin-top:1px !important; }',
+    '/* 段位标签组：右贴杉杉前，两行紧凑，与矿区名视线齐平 */',
+    '.mx-gz-tags{ gap:3px !important; align-items:flex-start !important; }',
+    '.mx-gz-lv{ font-size:9.5px !important; padding:1px 5px !important; }',
+    '.mx-gz-rank{ font-size:9px !important; }',
+    '/* 杉杉组：贴右、与左侧同一中线，形象26、等级上下两行 */',
+    '.mx-gz-pet-head{ margin-left:auto !important; gap:4px !important; }',
+    '.mx-gz-pet{ width:26px !important; height:26px !important; flex-basis:26px !important; }',
+    '.mx-gz-pet-lv{ gap:1px !important; }',
+    '.mx-gz-pet-lv .plv-nm{ font-size:9.5px !important; }',
+    '.mx-gz-pet-lv .plv-lv{ font-size:9px !important; }',
+    '/* 2) 数据行：6 格等宽网格，严格对齐；取消能量格加宽 */',
+    '.mx-gz-stats{ display:grid !important; grid-template-columns:repeat(6,minmax(0,1fr)) !important; gap:4px !important; margin-top:5px !important; }',
+    '.mx-gz-card, .mx-gz-energy{ width:auto !important; flex:none !important; min-height:33px !important;',
+    '  padding:3px 1px !important; border-radius:8px !important; }',
+    '.mx-gz-energy{ flex:none !important; }',
+    '.mx-gz-cv, .mx-gz-ev{ font-size:12.5px !important; }',
+    '.mx-gz-cl, .mx-gz-el{ font-size:8px !important; gap:1px !important; }',
+    '/* 充能格：纳入等宽，内部居中，等高 */',
+    '.mx-gz-charge{ width:auto !important; flex:none !important; min-height:33px !important;',
+    '  padding:0 !important; font-size:10.5px !important; border-radius:8px !important; }',
+    '/* 3) 矿脉格子：居中收紧、等距，空槽更清晰 */',
+    '.mx-gz-pile{ margin-top:5px !important; }',
+    '.mx-gz-nuggets{ gap:4px !important; max-width:290px !important; }',
+    '.mx-nug{ height:11px !important; }',
+    '.mx-nug.empty{ border:1px dashed rgba(110,130,118,.32) !important; }',
+    '/* 4) 底部：说明文字贴左、溢出贴右，箭头区另由把手占位 */',
+    '.mx-gz-foot{ margin-top:4px !important; padding-right:52px !important; }',
+    '.mx-gz-foot>span:first-child{ flex:1 1 auto !important; }',
+    '.mx-gz-more{ flex:0 0 auto !important; }'
+  ].join('\n');
+  var s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
+})();</script>
 </body>
 </html>
