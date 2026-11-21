@@ -12490,5 +12490,147 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 })();
 </script>
 
+<style>
+/* ============================================================
+   v161 · 补齐传统游戏容器与牌面样式（缺失导致裸文本堆叠、溢出）
+   作用域限定 #ovTradMini，不影响主游戏与其它面板
+   ============================================================ */
+#ovTradMini .mini-wrap{ position:relative; display:flex; flex-direction:column;
+  width:min(100%,560px); height:min(94dvh,860px); box-sizing:border-box;
+  border-radius:16px; overflow:hidden;
+  background:linear-gradient(165deg,#2a3b30,#16241d 70%,#0e1813);
+  border:1.5px solid rgba(226,190,108,.62);
+  box-shadow:0 18px 50px rgba(0,0,0,.6), inset 0 0 0 2px rgba(226,190,108,.1); }
+#ovTradMini .mini-hud{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; flex:0 0 auto;
+  padding:8px 10px; box-sizing:border-box;
+  background:linear-gradient(180deg,rgba(60,44,20,.96),rgba(38,28,12,.96));
+  border-bottom:1px solid rgba(226,190,108,.4); }
+#ovTradMini .mini-hud button{ cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+  background:linear-gradient(180deg,#f0d79a,#d9b268); color:#3a2608; border:1px solid #a67c33;
+  border-radius:8px; padding:5px 9px; font-size:12px; font-weight:900; min-height:30px; }
+#ovTradMini .mini-hud button:active{ transform:translateY(1px); filter:brightness(.95); }
+#ovTradMini .mini-close{ background:linear-gradient(180deg,#e88b7a,#c0493a) !important; color:#fff !important; border-color:#8e2e22 !important; }
+#ovTradMini .mini-title{ flex:1 1 auto; min-width:80px; text-align:center; color:#ffe1a0; font-size:14px; font-weight:900; letter-spacing:.5px; }
+#ovTradMini .mini-score{ flex:1 1 100%; text-align:center; color:#e8c886; font-size:11px; }
+#ovTradMini .mini-score b{ color:#fff2cf; }
+#ovTradMini .mini-stage{ position:relative; flex:1 1 auto; min-height:0; overflow:hidden; }
+#ovTradMini .mini-stage #miniFx{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+#ovTradMini .mini-content{ position:relative; z-index:2; width:100%; height:100%; overflow:auto; -webkit-overflow-scrolling:touch; }
+#ovTradMini .mini-prog{ position:absolute; top:0; left:0; right:0; height:3px; background:rgba(0,0,0,.3); z-index:3; display:none; }
+#ovTradMini .mini-prog i{ display:block; height:100%; background:#e2be6c; width:0; }
+#ovTradMini .mini-drawer{ flex:0 0 auto; background:rgba(20,14,8,.94); border-top:1px solid rgba(226,190,108,.3); color:#e8d3a0; }
+#ovTradMini .dw-handle{ display:block; width:100%; cursor:pointer; text-align:center; padding:6px; color:#e2be6c; font-size:11px; font-weight:800; background:transparent; border:0; }
+#ovTradMini .dw-body{ display:none; max-height:22dvh; overflow:auto; padding:0 12px 10px; font-size:11.5px; line-height:1.6; color:#cbb98f; }
+#ovTradMini .mini-drawer.open .dw-body{ display:block; }
+#ovTradMini .mini-drawer.open .dw-arrow{ transform:rotate(180deg); display:inline-block; }
+
+/* ----- 斗地主 / 掼蛋 通用 ----- */
+#ovTradMini .ng-dd,#ovTradMini .ng-gd{ display:flex; flex-direction:column; align-items:center; gap:9px;
+  min-height:100%; box-sizing:border-box; padding:10px 8px 14px; color:#f6e2b8; }
+#ovTradMini .toprow{ display:flex; justify-content:space-between; width:100%; gap:8px; }
+#ovTradMini .seat{ display:flex; align-items:center; gap:5px; padding:5px 9px; border-radius:10px;
+  background:rgba(255,240,200,.07); border:1px solid rgba(226,190,108,.28); font-size:12px; }
+#ovTradMini .seat.active{ border-color:#ffcf6a; box-shadow:0 0 10px rgba(255,207,106,.4); background:rgba(255,207,106,.14); }
+#ovTradMini .seat .ava{ font-size:18px; }
+#ovTradMini .seat .nm{ font-weight:800; color:#ffe1a0; }
+#ovTradMini .seat .cnt{ color:#e8c886; font-weight:900; }
+#ovTradMini .play{ display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px;
+  min-height:76px; width:100%; padding:6px; box-sizing:border-box;
+  border-radius:12px; background:rgba(0,0,0,.22); border:1px dashed rgba(226,190,108,.3); }
+#ovTradMini .play .ph{ color:#c9ad76; font-size:12px; }
+#ovTradMini .hand{ display:flex; flex-direction:column; gap:6px; width:100%; align-items:center; }
+#ovTradMini .hand-row{ display:flex; justify-content:center; flex-wrap:wrap; gap:var(--cr,3px); }
+#ovTradMini .ng-card{ position:relative; flex:0 0 auto; width:var(--cw,50px); height:var(--ch,70px);
+  box-sizing:border-box; border-radius:6px; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+  background:linear-gradient(160deg,#fffdf6,#f2e6cc); border:1.5px solid #b89a5c;
+  box-shadow:0 2px 5px rgba(0,0,0,.35); font-weight:900; overflow:hidden; }
+#ovTradMini .ng-card.red{ color:#c0392b; }
+#ovTradMini .ng-card.black{ color:#26221c; }
+#ovTradMini .ng-card .r{ position:absolute; top:3px; left:5px; font-size:calc(var(--cs,20px) * 1.05); line-height:1; }
+#ovTradMini .ng-card .s{ position:absolute; bottom:4px; right:5px; font-size:calc(var(--cs,20px) * 1.1); }
+#ovTradMini .ng-card.mini{ width:calc(var(--cw,50px) * .72); height:calc(var(--ch,70px) * .72); margin-left:var(--cov,-8px); }
+#ovTradMini .ng-card.mini .r{ font-size:calc(var(--cs,20px) * .82); }
+#ovTradMini .ng-card.mini .s{ font-size:calc(var(--cs,20px) * .85); }
+#ovTradMini .ng-card.sel{ transform:translateY(-10px); box-shadow:0 6px 12px rgba(0,0,0,.5), 0 0 0 2px #ffcf6a; }
+#ovTradMini .ng-card.lv{ background:linear-gradient(160deg,#fff6d8,#f0d488); }
+#ovTradMini .ng-card.wild{ outline:2px solid #e6b34a; }
+#ovTradMini .ctrls,#ovTradMini .mj-ctrls{ display:flex; flex-wrap:wrap; justify-content:center; gap:6px; width:100%; }
+#ovTradMini .btn{ cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+  background:linear-gradient(180deg,#f5e3b8,#dcc07e); color:#3a2608; border:1px solid #a67c33;
+  border-radius:9px; padding:8px 12px; font-size:12.5px; font-weight:900; min-height:38px; }
+#ovTradMini .btn:active{ transform:translateY(1px); }
+#ovTradMini .btn:disabled{ opacity:.45; cursor:not-allowed; }
+#ovTradMini .btn.primary{ background:linear-gradient(180deg,#e8703f,#c1441d); color:#fff; border-color:#8e2c12; }
+#ovTradMini .btn.rule{ background:linear-gradient(180deg,#8ec9a0,#3f8f63); color:#fff; border-color:#2c6b48; }
+#ovTradMini .btn.voice{ background:linear-gradient(180deg,#a9c7ef,#4b7cb8); color:#fff; border-color:#335789; }
+#ovTradMini .btn.net{ background:linear-gradient(180deg,#d9c7f0,#8f6fbf); color:#fff; border-color:#6b4f99; }
+#ovTradMini .dd-bid{ position:absolute; left:50%; top:45%; transform:translate(-50%,-50%); z-index:6;
+  width:86%; max-width:360px; text-align:center; padding:16px; box-sizing:border-box;
+  background:linear-gradient(160deg,#3a2a12,#241809); border:1.5px solid #e2be6c; border-radius:14px;
+  box-shadow:0 12px 30px rgba(0,0,0,.6); display:none; }
+#ovTradMini .dd-bid.show{ display:block; }
+#ovTradMini .dd-bid-t{ color:#ffe1a0; font-size:13px; line-height:1.6; margin-bottom:12px; }
+#ovTradMini .dd-bid-b{ display:flex; gap:10px; justify-content:center; }
+#ovTradMini .msg{ text-align:center; color:#ffe1a0; font-size:12.5px; min-height:16px; }
+#ovTradMini .quip{ text-align:center; color:#c9ad76; font-size:11.5px; min-height:16px; opacity:0; transition:opacity .3s; }
+#ovTradMini .quip.show{ opacity:1; }
+#ovTradMini .rule-mask{ display:none; position:absolute; inset:0; z-index:9; overflow:auto; padding:14px;
+  background:rgba(12,8,4,.96); }
+#ovTradMini .rule-mask.show{ display:block; }
+#ovTradMini .rule-box{ max-width:440px; margin:0 auto; color:#e8d3a0; font-size:12px; line-height:1.6; }
+#ovTradMini .rule-box h3{ text-align:center; color:#ffe1a0; }
+#ovTradMini .rule-box table{ width:100%; border-collapse:collapse; }
+#ovTradMini .rule-box td{ border:1px solid rgba(226,190,108,.3); padding:5px 7px; }
+#ovTradMini .rule-note{ margin:10px 0; color:#c9ad76; }
+#ovTradMini .rule-close{ display:block; margin:12px auto 0; cursor:pointer; background:#e2be6c; color:#3a2608;
+  border:0; border-radius:9px; padding:8px 22px; font-weight:900; }
+#ovTradMini .gd-level{ color:#ffe1a0; font-size:14px; font-weight:900; }
+#ovTradMini .gd-track{ display:flex; gap:4px; flex-wrap:wrap; justify-content:center; color:#e8c886; font-size:11px; }
+
+/* ----- 麻将 ----- */
+#ovTradMini .ng-mj{ display:flex; flex-direction:column; align-items:center; gap:8px; min-height:100%;
+  box-sizing:border-box; padding:8px 6px 12px; color:#f6e2b8; }
+#ovTradMini .mj-top{ display:flex; gap:6px; width:100%; justify-content:space-around; }
+#ovTradMini .mj-seat{ flex:1 1 0; min-width:0; text-align:center; padding:5px 3px; border-radius:9px;
+  background:rgba(255,240,200,.06); border:1px solid rgba(226,190,108,.25); font-size:10px; }
+#ovTradMini .mj-seat.active{ border-color:#ffcf6a; box-shadow:0 0 9px rgba(255,207,106,.4); }
+#ovTradMini .mj-seat.won{ background:rgba(255,207,106,.18); }
+#ovTradMini .mj-seat .ava{ font-size:16px; }
+#ovTradMini .mj-seat .nm{ font-weight:800; color:#ffe1a0; }
+#ovTradMini .mj-seat .cnt{ color:#e8c886; }
+#ovTradMini .mj-backs{ display:flex; gap:1px; justify-content:center; flex-wrap:wrap; margin-top:3px; }
+#ovTradMini .mj-backs i{ width:7px; height:10px; border-radius:2px; background:linear-gradient(160deg,#4a86c0,#2b5a8c); border:1px solid #1e4269; }
+#ovTradMini .mj-meld{ display:inline-block; margin:2px 1px; padding:1px 3px; border-radius:4px;
+  background:rgba(255,240,200,.1); color:#e8d3a0; }
+#ovTradMini .mj-melds.sm{ font-size:9px; }
+#ovTradMini .mj-center{ text-align:center; width:100%; }
+#ovTradMini .mj-discards{ display:flex; flex-wrap:wrap; gap:2px; justify-content:center; min-height:56px; }
+#ovTradMini .mj-msg{ color:#ffe1a0; font-size:12px; margin:4px 0; }
+#ovTradMini .mj-me{ width:100%; text-align:center; }
+#ovTradMini .mj-fans{ display:flex; gap:4px; flex-wrap:wrap; justify-content:center; }
+#ovTradMini .mj-fans .fan{ padding:1px 6px; border-radius:6px; background:rgba(226,190,108,.18); color:#ffe1a0; font-size:10px; }
+#ovTradMini .mj-hand{ display:flex; gap:2px; flex-wrap:wrap; justify-content:center; margin-top:5px; }
+#ovTradMini .mj-tile{ position:relative; width:var(--mjw,30px); height:var(--mjh,42px); box-sizing:border-box;
+  border-radius:5px; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+  background:linear-gradient(160deg,#fffdf4,#e8dcc0); border:1.5px solid #b89a5c;
+  box-shadow:0 2px 4px rgba(0,0,0,.35); color:#2a2115; }
+#ovTradMini .mj-tile .tk{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+  width:100%; height:100%; font-size:calc(var(--mjw,30px) * .5); font-weight:900; line-height:1; }
+#ovTradMini .mj-tile .tk.m{ color:#2b5a8c; }
+#ovTradMini .mj-tile .tk.s{ color:#2f8f46; }
+#ovTradMini .mj-tile .tk.p{ color:#c0392b; }
+#ovTradMini .mj-tile .tk.k{ color:#c08a1e; }
+#ovTradMini .mj-tile .tk b{ font-size:calc(var(--mjw,30px) * .42); }
+#ovTradMini .mj-tile.back{ background:linear-gradient(160deg,#4a86c0,#2b5a8c); border-color:#1e4269; }
+#ovTradMini .mj-tile.sel{ transform:translateY(-8px); box-shadow:0 5px 10px rgba(0,0,0,.5), 0 0 0 2px #ffcf6a; }
+#ovTradMini .mj-tile.wild{ outline:2px solid #e6b34a; }
+#ovTradMini .mj-tile.hint{ outline:2px solid #6fe0a0; }
+#ovTradMini .mj-tile.last{ box-shadow:0 0 0 2px #ff6b4a; }
+#ovTradMini .mj-wait{ color:#c9ad76; font-size:10.5px; }
+#ovTradMini .mj-think{ color:#c9ad76; font-size:11.5px; }
+#ovTradMini .mj-fan-pop{ position:absolute; left:50%; top:30%; transform:translateX(-50%); z-index:7;
+  color:#ffe1a0; font-size:15px; font-weight:900; text-shadow:0 2px 8px #000; pointer-events:none; }
+</style>
+
 </body>
 </html>
