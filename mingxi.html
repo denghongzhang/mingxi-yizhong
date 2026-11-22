@@ -13042,5 +13042,90 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 })();
 </script>
 
+<!-- ============ v165 · 矿区排版终整理：去重复文字 / 矿石格加宽 / 数字与充能留白 ============ -->
+<style>
+/* ① 去重复：能量框只留"杉杉图标 + 青杉苗 + Lv.3 + 能量数值"，隐藏冗余的"能量"小标签 */
+.mx-v164-engval .mx-gz-el{ display:none !important; }
+/* ② 矿石三格(.7fr)过窄导致"金线莲/红豆杉"文字与圆点贴挤 → 三格各加到 .84fr */
+.mx-gz-stats{ grid-template-columns:1fr .84fr .84fr .84fr 2.12fr .9fr 1.1fr !important; }
+.mx-gz-stats .ore .mx-gz-cl{ gap:1px !important; font-size:7px !important; }
+.mx-gz-stats .ore .mx-ore-i{ width:7px !important; height:7px !important; }
+/* ③ 能量框：等级组贴左、数值贴右，中间留白；数值清晰不与"Lv.3"重叠 */
+.mx-gz-energy{ padding:3px 7px !important; gap:4px !important; overflow:hidden !important; }
+.mx-v164-pet{ gap:2px !important; }
+.mx-v164-pet .mx-gz-pet{ width:21px !important; height:21px !important; flex-basis:21px !important; }
+.mx-v164-pet .plv-nm{ font-size:7.5px !important; }
+.mx-v164-pet .plv-lv{ font-size:7.5px !important; }
+.mx-v164-engval{ display:flex !important; flex-direction:column !important; align-items:flex-end !important;
+  justify-content:center !important; margin-left:auto !important; flex:0 0 auto !important; }
+.mx-v164-engval .mx-gz-ev{ font-size:11px !important; line-height:1.1 !important; padding-right:1px !important; }
+</style>
+<script>
+(function(){
+  if(window.__MX_V165) return; window.__MX_V165=true;
+  function init(){
+    /* 能量小标签由 CSS 隐藏，无需改文字；此处仅确保能量框结构正确 */
+    var en=document.querySelector('.mx-gz-energy');
+    if(en && !en.dataset.v165) en.dataset.v165='1';
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  window.addEventListener('load',init);
+  /* 内容热更新可能重写节点，定时兜底 */
+  setInterval(init,1500);
+})();
+</script>
+<!-- ============ v166 · 矿区回归原始布局：杉杉形象回头部框外 + 能量框标签/数字上下结构 ============ -->
+<style>
+/* ① 头部杉杉块恢复原位（头部右侧），用新 class 绕开 alignPet() 每800ms的 marginLeft 干扰 */
+.mx-v166-pethead{ margin-left:auto !important; align-self:stretch !important; display:flex !important;
+  align-items:center !important; gap:5px !important; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.mx-v166-pethead:active{ opacity:.72; }
+.mx-v166-pethead .mx-gz-pet{ width:26px !important; height:26px !important; flex-basis:26px !important; margin:0 !important; }
+.mx-v166-pethead .mx-gz-pet-lv{ display:flex !important; flex-direction:column !important; align-items:flex-start !important;
+  justify-content:center !important; gap:1px !important; line-height:1.1 !important; padding:0 !important; }
+.mx-v166-pethead .plv-nm{ font-size:10px !important; font-weight:900; color:#1e9e52; white-space:nowrap; }
+.mx-v166-pethead .plv-lv{ font-size:9px !important; font-weight:800; color:#1e9e52; opacity:.85; white-space:nowrap; }
+/* ② 能量框恢复：标签"杉杉能量"在上、数字在下（纵向上下结构） */
+.mx-gz-energy{ flex-direction:column !important; align-items:center !important; justify-content:center !important;
+  gap:1px !important; padding:2px 1px !important; }
+.mx-gz-energy .mx-gz-el{ display:inline-flex !important; font-size:8px !important; opacity:.75 !important; white-space:nowrap !important; }
+.mx-gz-energy .mx-gz-ev{ font-size:12.5px !important; color:#1e9e52 !important; white-space:nowrap !important; }
+/* ③ 数据行网格恢复 6列→7列均衡（撤销 v165 的窄矿石格比例，矿石格给足宽度） */
+.mx-gz-stats{ grid-template-columns:1fr .9fr .9fr .9fr 1.25fr .95fr 1.15fr !important; }
+.mx-gz-stats .ore .mx-gz-cl{ gap:1px !important; font-size:7.5px !important; }
+.mx-gz-stats .ore .mx-ore-i{ width:7px !important; height:7px !important; }
+</style>
+<script>
+(function(){
+  if(window.__MX_V166) return; window.__MX_V166=true;
+  function init(){
+    var head=document.getElementById('mxGzPetBlock');
+    var gzHead=document.querySelector('.mx-gz-head');
+    var en=document.querySelector('.mx-gz-energy');
+    /* ① 把杉杉块从能量框移回头部框外 */
+    if(head && gzHead && head.parentNode!==gzHead){
+      head.classList.remove('mx-gz-pet-head','mx-v164-pet');
+      head.classList.add('mx-v166-pethead');
+      head.style.marginLeft='';           /* 清除 alignPet 遗留位移 */
+      gzHead.appendChild(head);           /* 放回头部末尾（右侧） */
+    }
+    /* ② 拆掉 v164 的 engval 包装，让"杉杉能量"标签与数字直接成为能量框子元素（恢复上下结构） */
+    if(en){
+      var wrap=en.querySelector('.mx-v164-engval');
+      if(wrap){
+        var el=wrap.querySelector('.mx-gz-el'), ev=wrap.querySelector('.mx-gz-ev');
+        if(el) el.textContent='杉杉能量';
+        if(el) en.appendChild(el);
+        if(ev) en.appendChild(ev);
+        wrap.parentNode.removeChild(wrap);
+      }
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  window.addEventListener('load',init);
+  setInterval(init,1200);  /* 兜底：内容热更新/alignPet 干扰后再归位 */
+})();
+</script>
+
 </body>
 </html>
