@@ -13242,5 +13242,83 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 })();
 </script>
 
+
+<!-- ============ v171 · ①能量框改金色 ②手柄/小游戏上下结构+文字=青杉苗+累计积分 ③0/10贴右上角 ============ -->
+<style>
+/* ===== ① 杉杉能量框 → 与杉杉形象框(金环)一致的金色 ===== */
+.mx-gz-energy.mx-v171-energy{
+  background:linear-gradient(135deg,#fff8e1 0%,#f6dd97 55%,#eecb6a 100%) !important;
+  border:1px solid rgba(201,150,44,.75) !important;
+  box-shadow:0 1px 4px rgba(160,110,20,.28), inset 0 1px 0 rgba(255,255,255,.85) !important;
+}
+.mx-gz-energy.mx-v171-energy .mx-gz-el{ color:#7a5306 !important; opacity:.95 !important; }
+.mx-gz-energy.mx-v171-energy .mx-gz-ev{ color:#6b4606 !important; }
+
+/* ===== ② 手柄 + 小游戏：上下结构；小游戏文字=青杉苗(9px)；框内"累计积分 0" ===== */
+.mx-v171-miniTxt{ font-size:9px !important; height:auto !important; line-height:1.05 !important;
+  font-weight:900 !important; color:#8a5a06 !important; letter-spacing:0 !important; }
+#mxGzMiniPad.mx-v171-pad{ display:flex !important; align-items:center !important; justify-content:center !important; }
+#mxGzMiniBox.mx-v171-minibox .mx-gz-cl{ font-size:7px !important; letter-spacing:-.2px !important; }
+
+/* ===== ③ 棋盘右上 0/10 徽标：贴右上角 + 缩小减少遮挡 ===== */
+#lvlRing{ right:2px !important; top:2px !important; width:38px !important; height:38px !important; }
+#lvlRing::before{ inset:3px !important; }
+#lvlRing #lvlRingTxt{ font-size:9px !important; }
+</style>
+<script>
+(function(){
+  if(window.__MX_V171) return; window.__MX_V171=true;
+  function init(){
+    var en=document.querySelector('.mx-gz-energy');
+    if(en) en.classList.add('mx-v171-energy');
+
+    var mini=document.getElementById('mxGzMiniBox');
+    if(mini){
+      var cl=mini.querySelector('.mx-gz-cl');
+      if(cl){
+        for(var i=0;i<cl.childNodes.length;i++){
+          var c=cl.childNodes[i];
+          if(c.nodeType===3 && /累计/.test(c.nodeValue) && !/积分/.test(c.nodeValue)) c.nodeValue='累计积分';
+        }
+      }
+      mini.classList.add('mx-v171-minibox');
+    }
+
+    var pad=document.getElementById('mxGzMiniPad');
+    var head=document.querySelector('.mx-gz-head');
+    var pet=document.getElementById('mxGzPetBlock');
+    var txt=head && head.querySelector('.mx-v170-miniTxt');
+    if(!pad||!txt||!pet||!mini) return;
+    pad.classList.add('mx-v171-pad');
+    txt.classList.add('mx-v171-miniTxt');
+
+    /* 相对同一父系坐标量取参考：左缘=累计积分框左缘；垂直带=杉杉等级块 */
+    var host=pad.offsetParent||document.querySelector('.mx-gz-main');
+    function rel(el){ var r=el.getBoundingClientRect(), hr=host.getBoundingClientRect();
+      return {l:r.left-hr.left, t:r.top-hr.top, w:r.width, h:r.height}; }
+    var mR=rel(mini), pR=rel(pet);
+    var targetLeft=mR.l;                       /* 与累计积分框左边同竖线 */
+    var bandTop=pR.t, bandH=pR.h;              /* 与杉杉等级/青杉苗上下边一致 */
+
+    var padS=28, txtH=txt.offsetHeight||10;    /* 手柄放大到 28px */
+    /* 严格上下边一致：手柄顶=块顶，文字底=块底；手柄与文字轻微重叠贴合 */
+    var padTop=bandTop;
+    var txtTop=bandTop+bandH-txtH;
+
+    function pin(el,l,t,w,h){
+      el.style.setProperty('left',l+'px','important');
+      el.style.setProperty('top',t+'px','important');
+      if(w) el.style.setProperty('width',w+'px','important');
+      if(h) el.style.setProperty('height',h+'px','important');
+    }
+    pin(pad, targetLeft, padTop, padS, padS);
+    var svg=pad.querySelector('svg'); if(svg){ svg.style.setProperty('width','28px','important'); svg.style.setProperty('height','28px','important'); }
+    pin(txt, targetLeft, txtTop);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  window.addEventListener('load',init);
+  setInterval(init,300);
+})();
+</script>
 </body>
 </html>
