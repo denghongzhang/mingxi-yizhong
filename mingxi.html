@@ -2,6 +2,31 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
+<!-- v167 · 启动看门狗：若 7 秒后棋盘仍未渲染（seal 还是写死的"99关"），自动带重试参数重载一次，
+     兜底微信/浏览器缓存旧 HTML 或大文件加载中断导致的空白卡死。带 v= 或 mxr= 参数时不再自动重载，避免死循环。 -->
+<script>
+(function(){
+  try{
+    var p=new URLSearchParams(location.search);
+    if(p.has('mxr')) return;                       /* 已是重试后的页面，不再重载 */
+    var timer=setTimeout(function(){
+      var seal=document.querySelector('header .seal');
+      var cells=document.querySelectorAll('#board .cell, .fa-ck, .ck').length;
+      var stuck = seal && /99/.test(seal.textContent||'') && cells===0;
+      if(!stuck){ clearTimeout(timer); return; }
+      var u=location.pathname + '?v=166&mxr=1' + (location.hash||'');
+      try{ location.replace(u); }catch(e){ location.href=u; }
+    }, 7000);
+    /* 一旦棋盘渲染成功就取消看门狗 */
+    window.addEventListener('load', function(){
+      setTimeout(function(){
+        var cells=document.querySelectorAll('#board .cell, .fa-ck, .ck').length;
+        if(cells>0) clearTimeout(timer);
+      }, 500);
+    });
+  }catch(e){}
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="format-detection" content="telephone=no" />
 <meta name="theme-color" content="#0b3d2e" />
