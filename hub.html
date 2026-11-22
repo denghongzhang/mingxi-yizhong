@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>明中·校史连连看 · 智能接入</title>
 <!--
-  多通道容灾路由中枢 v70
+  多通道容灾路由中枢 v71
   二维码指向本页（部署在 GitHub Pages / CloudBase 各一份）。
   流程：清理旧SW → 并发探测所有游戏通道 → 谁先返回有效游戏内容就跳谁
         → 微信内优先免确认通道 → 全部失败展示手动线路面板。
@@ -49,7 +49,7 @@
   <div class="status" id="status"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
   <div class="panel" id="panel"></div>
 </div>
-<div class="brand">明中·校史连连看 · 多通道智能接入 v70</div>
+<div class="brand">明中·校史连连看 · 多通道智能接入 v71</div>
 <a class="mini" href="?manual=1">线路选择</a>
 <script>
 /* ============ 通道清单（全部为 v154 最新版，MD5 一致） ============ */
@@ -58,7 +58,7 @@
 var CHANNELS = [
   { id:'gh',  icon:'🟢', name:'主线路 · GitHub Pages', desc:'微信免确认直接打开 · 全球加速',
     url:'https://denghongzhang.github.io/mingxi-yizhong/mingxi.html', mode:'cors', wxOK:true },
-  { id:'cb',  icon:'🟠', name:'备用线路 · 腾讯云', desc:'国内最快 · 微信内需点一次“确定访问”',
+  { id:'cb',  icon:'🟠', name:'备用线路 · 腾讯云', desc:'微信内会提示“确定访问” · 点确定后可进',
     url:'https://byt-d2g8u4ybu5bd46c4f-1469780385.tcloudbaseapp.com/mingxi.html', mode:'nocors', wxOK:false },
 ];
 var IS_WX = /MicroMessenger/i.test(navigator.userAgent);
@@ -140,6 +140,28 @@ function go(ch){
 
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
+/* v71 · 微信专用兜底：GitHub 探测失败时不再自动跳 CloudBase（其免费域名必被微信风控拦截，
+   会把用户直接扔进“无法确认本次跳转是否安全”的拦截页）。改为重试主线路 + 浏览器打开引导，
+   CloudBase 降为需用户主动点选、并明确告知会提示风险的备用项。 */
+function showWxFallback(){
+  if(decided) return; decided = true;
+  document.getElementById('ring').style.display='none';
+  document.getElementById('h1').textContent='主线路连接较慢';
+  document.getElementById('sub').textContent='微信内请优先重试主线路（免确认直开）';
+  statusEl.innerHTML='';
+  var gh=CHANNELS[0], cb=CHANNELS[1];
+  var html='';
+  html+='<a class="retry" href="'+gh.url+'">↻ 重试主线路（GitHub Pages · 免确认）</a>';
+  html+='<div style="margin:14px 2px 8px;font-size:12px;opacity:.95;padding:0 4px;line-height:1.75;text-align:left">'
+      +'若反复失败，点右上角 <b>···</b> → <b>在浏览器中打开</b>，即可直达最新版游戏。</div>';
+  html+='<a class="card" href="'+cb.url+'"><span class="ic">'+cb.icon+'</span>'
+      +'<span class="tx"><span class="tt">'+escapeHtml(cb.name)+'</span>'
+      +'<span class="ds">微信内会提示“确定访问”，点确定后继续</span></span>'
+      +'<span class="ar">›</span></a>';
+  panelEl.innerHTML=html;
+  panelEl.classList.add('show');
+}
+
 /* 手动面板：列出全部通道，任何自动跳转失败时用户仍可一键进入 */
 function showManual(title, sub){
   if(decided) return; decided = true;
@@ -170,16 +192,16 @@ function showManual(title, sub){
   if(!IS_WX && lg){ order.sort(function(a,b){ return (b.id===lg)-(a.id===lg); }); }
 
   if(IS_WX){
-    // 微信内：先赛跑免确认通道（gh/jsd），失败再尝试 CloudBase（需点一次确认）
+    // 微信内：GitHub Pages 是唯一免确认、且不会被风控拦截的通道。
+    // v71 关键修复：探测失败时绝不自动跳 CloudBase——其免费域名必被微信弹“无法确认安全”拦截页，
+    //   等于把用户扔进死胡同。改为「重试 GitHub 一次」仍失败则展示引导面板，由用户主动决定。
     var fast = order.filter(function(c){ return c.wxOK; });
     var win = await firstOK(fast, BUDGET);
     if(win){ go(win.ch); return; }
-    var slow = order.filter(function(c){ return !c.wxOK; });
-    if(slow.length){
-      var w2 = await firstOK(slow, 2200);
-      if(w2){ go(w2.ch); return; }
-    }
-    showManual('自动接入未成功', '请手动选择线路（微信内若提示确认，点“确定访问”即可）');
+    // 网络抖动兜底：再给 GitHub 一次更长预算的机会
+    win = await firstOK(fast, Math.round(BUDGET*1.3));
+    if(win){ go(win.ch); return; }
+    showWxFallback();
   }else{
     var win2 = await firstOK(order, BUDGET);
     if(win2){ go(win2.ch); return; }
@@ -187,8 +209,8 @@ function showManual(title, sub){
   }
 })();
 
-/* 终极兜底：8 秒内未离开本页，无论探测结果如何都展示手动入口 */
-setTimeout(function(){ if(!decided) showManual(); }, 8000);
+/* 终极兜底：微信内重试一次需更久，给 13 秒；其余 8 秒。均未离开则展示手动/引导入口 */
+setTimeout(function(){ if(!decided){ if(IS_WX) showWxFallback(); else showManual(); } }, IS_WX?13000:8000);
 </script>
 </body>
 </html>
