@@ -8,6 +8,32 @@
      半成品/坏缓存导致 JS 未执行，自动跳到全新文件名 mxplay.html 并带随机参数强制破缓存，最多重试 2 次。
      关键改进：换文件名 + 随机 token（旧 mxr 方案原地换参数仍命中同一坏缓存，已废弃）。 -->
 <script>
+/* v172 · 存储安全网：包装 setItem，配额溢出时静默失败并清理旧的每日临时键，避免任一处写满导致崩溃 */
+(function(){
+  try{
+    var proto=window.Storage && Storage.prototype;
+    if(proto && !proto.__mxGuarded){
+      var orig=proto.setItem;
+      proto.__mxGuarded=true;
+      proto.setItem=function(k,v){
+        try{ return orig.call(this,k,v); }
+        catch(e){
+          try{
+            var prefix=String(k);
+            /* 清理过期的每日提示键(mx_card_tip_日期 / mx_hide 等临时键)后重试一次 */
+            if(this===localStorage){
+              var dayKeys=[];
+              for(var i=0;i<this.length;i++){ var kk=this.key(i); if(kk && /^mx_card_tip_/.test(kk) && kk!==prefix) dayKeys.push(kk); }
+              dayKeys.slice(0,10).forEach(function(dk){ try{ localStorage.removeItem(dk); }catch(_){} });
+              return orig.call(this,k,v);
+            }
+          }catch(_){}
+          return; /* 静默失败，业务不中断 */
+        }
+      };
+    }
+  }catch(e){}
+})();
 (function(){
   try{
     var p=new URLSearchParams(location.search);
@@ -3982,10 +4008,26 @@ function preloadLevelClips(){
     const keys=new Set();
     labels.forEach(t=>{ if(t&&t.label) keys.add('lbl_'+t.label); });
     if(lv){ keys.add(clipKeyFor(lv,'female',curLang)); keys.add(clipKeyFor(lv,'male',curLang)); }
-    keys.forEach(k=>{
-      if(_clipCache.has(k)) return;
-      const a=new Audio(AUDIO_BASE+encodeURIComponent(k)+'.mp3?v=4'); a.preload='auto'; _clipCache.set(k,a);
-    });
+    const pending=[...keys].filter(k=>!_clipCache.has(k));
+    if(!pending.length) return;
+    /* v172优化：不再首屏同步预热(preload=auto 会立即发多个远程mp3请求拖慢首屏)。
+       改为 load 后浏览器空闲时分批(每批2个)预热；点触朗读时 play() 仍会自动加载，功能不变。 */
+    const idle=window.requestIdleCallback?function(fn){requestIdleCallback(fn,{timeout:2000});}:function(fn){setTimeout(fn,400);};
+    const warm=function(){
+      let i=0;
+      const batch=function(){
+        const end=Math.min(i+2,pending.length);
+        for(;i<end;i++){
+          const k=pending[i];
+          if(_clipCache.has(k)) continue;
+          const a=new Audio(AUDIO_BASE+encodeURIComponent(k)+'.mp3?v=4'); a.preload='auto'; _clipCache.set(k,a);
+        }
+        if(i<pending.length) idle(batch);
+      };
+      batch();
+    };
+    if(document.readyState==='complete') idle(warm);
+    else window.addEventListener('load',function(){idle(warm);},{once:true});
   }catch(e){}
 }
 /* 离线模式：从懒加载的 window.AUDIO_B64 读取 base64 内联播放（一键回滚到自包含） */
@@ -13068,6 +13110,22 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 })();
 </script>
 
+<!-- ============ v172 · 统一轮询调度器：合并原4个兜底轮询(1500/1200/500/300ms)为单一定时器，页面隐藏时暂停 ============ -->
+<script>
+(function(){
+  if(window.__MX_POLL) return;
+  var tasks=[];
+  window.__MX_POLL={
+    add:function(fn){ if(typeof fn==='function' && tasks.indexOf(fn)<0) tasks.push(fn); },
+    tick:function(){
+      if(document.hidden) return;               /* 后台暂停，省电降CPU */
+      for(var i=0;i<tasks.length;i++){ try{ tasks[i](); }catch(e){} }
+    }
+  };
+  setInterval(function(){ window.__MX_POLL.tick(); },300);
+})();
+</script>
+
 <!-- ============ v165 · 矿区排版终整理：去重复文字 / 矿石格加宽 / 数字与充能留白 ============ -->
 <style>
 /* ① 去重复：能量框只留"杉杉图标 + 青杉苗 + Lv.3 + 能量数值"，隐藏冗余的"能量"小标签 */
@@ -13096,8 +13154,7 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
   window.addEventListener('load',init);
-  /* 内容热更新可能重写节点，定时兜底 */
-  setInterval(init,1500);
+  /* v172: 原1500ms空轮询(仅设dataset)已移除，无副作用 */
 })();
 </script>
 <!-- ============ v166 · 矿区回归原始布局：杉杉形象回头部框外 + 能量框标签/数字上下结构 ============ -->
@@ -13149,7 +13206,7 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
   window.addEventListener('load',init);
-  setInterval(init,1200);  /* 兜底：内容热更新/alignPet 干扰后再归位 */
+  if(window.__MX_POLL) window.__MX_POLL.add(init);  /* v172统一调度 */
 })();
 </script>
 
@@ -13238,7 +13295,7 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',sync); else sync();
   window.addEventListener('load',sync);
-  setInterval(sync,500);  /* 兜底：var_plv/内容热更新会重写节点 */
+  if(window.__MX_POLL) window.__MX_POLL.add(sync);  /* v172统一调度 */
 })();
 </script>
 
@@ -13317,7 +13374,7 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
   window.addEventListener('load',init);
-  setInterval(init,300);
+  if(window.__MX_POLL) window.__MX_POLL.add(init);  /* v172统一调度 */
 })();
 </script>
 </body>
