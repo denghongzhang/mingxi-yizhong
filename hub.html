@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>明中·校史连连看 · 智能接入</title>
 <!--
-  多通道容灾路由中枢 v73
+  多通道容灾路由中枢 v74
   二维码指向本页（部署在 GitHub Pages / CloudBase 各一份）。
   流程：清理旧SW → 并发探测所有游戏通道 → 谁先返回有效游戏内容就跳谁
         → 微信内优先免确认通道 → 全部失败展示手动线路面板。
@@ -49,7 +49,7 @@
   <div class="status" id="status"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
   <div class="panel" id="panel"></div>
 </div>
-<div class="brand">明中·校史连连看 · 多通道智能接入 v73</div>
+<div class="brand">明中·校史连连看 · 多通道智能接入 v74</div>
 <a class="mini" href="?manual=1">线路选择</a>
 <script>
 /* ============ 通道清单（全部为 v154 最新版，MD5 一致） ============ */
@@ -57,9 +57,9 @@
    GitHub Pages 是微信内唯一免确认且能正确渲染的通道；CloudBase 国内快但微信需点一次“确定访问”。 */
 var CHANNELS = [
   { id:'gh',  icon:'🟢', name:'主线路 · GitHub Pages', desc:'微信免确认直接打开 · 全球加速',
-    url:'https://denghongzhang.github.io/mingxi-yizhong/mxplay.html?v=168', mode:'cors', wxOK:true },
+    url:'https://denghongzhang.github.io/mingxi-yizhong/mxplay.html?v=169', mode:'cors', wxOK:true },
   { id:'cb',  icon:'🟠', name:'备用线路 · 腾讯云', desc:'微信内会提示“确定访问” · 点确定后可进',
-    url:'https://byt-d2g8u4ybu5bd46c4f-1469780385.tcloudbaseapp.com/mxplay.html?v=168', mode:'nocors', wxOK:false },
+    url:'https://byt-d2g8u4ybu5bd46c4f-1469780385.tcloudbaseapp.com/mxplay.html?v=169', mode:'nocors', wxOK:false },
 ];
 var IS_WX = /MicroMessenger/i.test(navigator.userAgent);
 var FORCE_MANUAL = /[?&]manual=1/.test(location.search);
