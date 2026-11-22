@@ -13153,5 +13153,94 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 })();
 </script>
 
+
+<!-- ============ v170 · 矿区头部精排：杉杉块左移对齐能量框 / 小游戏标题上移 ============ -->
+<style>
+/* —— ① 杉杉块：绝对定位到能量框正上方（DOM 仍在 head 内，避免 v166 归位定时器冲突） —— */
+#mxGzPetBlock.mx-v170-pet{
+  position:absolute !important; top:1px !important; margin:0 !important;
+  height:32px !important; display:flex !important; flex-direction:row !important;
+  align-items:center !important; gap:5px !important; z-index:4 !important;
+  cursor:pointer !important; -webkit-tap-highlight-color:transparent !important;
+}
+#mxGzPetBlock.mx-v170-pet:active{ opacity:.72; }
+#mxGzPetBlock.mx-v170-pet .mx-gz-pet{ width:26px !important; height:26px !important; flex:0 0 26px !important; margin:0 !important; }
+/* 等级文字：两行——第一行"杉杉等级"标题(13px,仿萤石矿区)，第二行 青杉苗 Lv.3(左右排列) */
+#mxGzPetBlock.mx-v170-pet .mx-gz-pet-lv{
+  display:flex !important; flex-direction:column !important; align-items:flex-start !important;
+  justify-content:center !important; gap:0 !important; line-height:1.12 !important; padding:0 !important;
+}
+#mxGzPetBlock.mx-v170-pet .mx-gz-pet-lv::before{
+  content:'杉杉等级'; font-size:13px !important; font-weight:900 !important; color:#1e9e52 !important;
+  white-space:nowrap !important; letter-spacing:.3px;
+}
+.mx-v170-namerow{ display:flex !important; flex-direction:row !important; align-items:center !important; gap:4px !important; white-space:nowrap !important; }
+.mx-v170-namerow .plv-nm{ font-size:9px !important; font-weight:900 !important; color:#1e9e52 !important; }
+.mx-v170-namerow .plv-lv{ font-size:9px !important; font-weight:800 !important; color:#1e9e52 !important; opacity:.85 !important; }
+
+/* —— ② 小游戏标题：手柄+文字上移到头部右侧(与萤石矿区同高)，框内只留"累计"+数字 —— */
+#mxGzMiniPad.mx-v170-pad{
+  position:absolute !important; top:4px !important; z-index:4 !important;
+  width:24px !important; height:24px !important; margin:0 !important; cursor:pointer !important;
+}
+#mxGzMiniPad.mx-v170-pad svg{ width:24px !important; height:24px !important; }
+.mx-v170-miniTxt{ position:absolute !important; top:4px !important; z-index:4 !important;
+  height:24px !important; display:flex !important; align-items:center !important;
+  font-size:13px !important; font-weight:900 !important; color:#a9761a !important; white-space:nowrap !important;
+  letter-spacing:.3px; cursor:pointer !important; }
+#mxGzMiniBox.mx-v170-minibox .mx-gz-cl{ font-size:8px !important; opacity:.7 !important; }
+</style>
+<script>
+(function(){
+  if(window.__MX_V170) return; window.__MX_V170=true;
+  function ensureNamerow(lv){
+    if(!lv) return;
+    var row=lv.querySelector('.mx-v170-namerow');
+    var nm=lv.querySelector('.plv-nm'), lvel=lv.querySelector('.plv-lv');
+    if(row){
+      /* 已被 var_plv 重写(丢了 namerow) → 重建 */
+      if(!row.parentNode) {
+        if(!nm||!lvel) return;
+        row.appendChild(nm); row.appendChild(lvel); lv.appendChild(row);
+      }
+      return;
+    }
+    if(nm&&lvel){ row=document.createElement('span'); row.className='mx-v170-namerow'; row.appendChild(nm); row.appendChild(lvel); lv.appendChild(row); }
+  }
+  function sync(){
+    var main=document.querySelector('.mx-gz-main');
+    var head=document.querySelector('.mx-gz-head');
+    var pet=document.getElementById('mxGzPetBlock');
+    var en=document.querySelector('.mx-gz-energy');
+    var mini=document.getElementById('mxGzMiniBox');
+    var pad=document.getElementById('mxGzMiniPad');
+    if(!main||!pet||!en||!mini||!pad) return;
+    /* ① 杉杉块左对齐能量框 */
+    pet.classList.add('mx-v170-pet');
+    var ex=en.offsetLeft;
+    if(ex>0 && pet.dataset.mxEx!==String(ex)){ pet.style.left=ex+'px'; pet.dataset.mxEx=String(ex); }
+    ensureNamerow(document.getElementById('mxGzPetLv'));
+    /* ② 小游戏手柄+标题上移到头部右侧 */
+    var mx=mini.offsetLeft, mw=main.clientWidth;
+    pad.classList.add('mx-v170-pad');
+    var txt=head.querySelector('.mx-v170-miniTxt');
+    if(!txt){ txt=document.createElement('span'); txt.className='mx-v170-miniTxt'; txt.textContent='小游戏'; head.appendChild(txt); }
+    /* 手柄+文字作为一组，整体右对齐到面板右边缘(留4px)，杜绝溢出裁切 */
+    var tw=txt.offsetWidth||40, gap=3, padW=24, rightPad=4;
+    var padL=mw-rightPad-padW-gap-tw;
+    if(padL<2) padL=2;
+    if(pad.dataset.mxL!==String(padL)){ pad.style.left=padL+'px'; pad.dataset.mxL=String(padL); }
+    txt.style.left=(padL+padW+gap)+'px';
+    /* mini 框内标签精简为"累计"，避免与框外"小游戏"重复 */
+    var cl=mini.querySelector('.mx-gz-cl');
+    if(cl){ for(var n=cl.childNodes.length-1;n>=0;n--){ var c=cl.childNodes[n]; if(c.nodeType===3 && /小游戏/.test(c.nodeValue)) c.nodeValue='累计'; } }
+    mini.classList.add('mx-v170-minibox');
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',sync); else sync();
+  window.addEventListener('load',sync);
+  setInterval(sync,500);  /* 兜底：var_plv/内容热更新会重写节点 */
+})();
+</script>
+
 </body>
 </html>
