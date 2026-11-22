@@ -13377,5 +13377,1075 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   if(window.__MX_POLL) window.__MX_POLL.add(init);  /* v172统一调度 */
 })();
 </script>
+<!-- ============ v173 · 五区优化：①各游戏积分+累计 ②掼蛋四家布局 ③出牌区利用空间 ④再来一局 ⑤五子棋十字落子+三色棋盘 ============ -->
+<style>
+/* ① 小游戏卡片积分角标 + 累计条 */
+.game-card{position:relative;}
+.game-card .gc-score{position:absolute;top:4px;right:4px;z-index:3;font-size:9.5px;font-weight:900;
+  color:#7a5210;background:linear-gradient(180deg,#fff6cf,#f0d488);border:1px solid #d9b45a;
+  border-radius:9px;padding:1px 5px;line-height:1.3;box-shadow:0 1px 3px rgba(120,80,20,.28);}
+#mxMiniTotalBar{margin:2px 0 9px;padding:6px 10px;border-radius:10px;text-align:center;font-size:11.5px;
+  font-weight:800;color:#6b4c12;background:linear-gradient(135deg,#fff7e0,#f3e3b6);border:1px solid #e4cf9a;}
+#mxMiniTotalBar b{color:#c0392b;font-size:14px;margin:0 3px;}
+
+/* ②③ 掼蛋：四家整齐布局 + 出牌区独占整行最大化利用空间
+   DOM: .gd-mid > (.gd-side.left>#seat3, .gd-center, .gd-side.right>#seat1)
+   用 Grid 重排：左右对手在上方两侧，出牌区跨两列独占下方整行 → 牌可充分横向铺开 */
+#ovTradMini .ng-gd .gd-top{width:100%;display:flex;justify-content:center;}
+#ovTradMini .ng-gd .gd-mid{width:100%;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:5px;}
+#ovTradMini .ng-gd .gd-mid .gd-side.left{grid-column:1;grid-row:1;justify-self:start;}
+#ovTradMini .ng-gd .gd-mid .gd-side.right{grid-column:2;grid-row:1;justify-self:end;}
+#ovTradMini .ng-gd .gd-mid .gd-side .seat{white-space:nowrap;}
+#ovTradMini .ng-gd .gd-center{grid-column:1 / -1;grid-row:2;width:100%;min-height:66px;display:flex;align-items:center;
+  justify-content:center;flex-wrap:wrap;align-content:center;gap:2px;
+  border-radius:12px;background:rgba(0,0,0,.26);border:1px dashed rgba(226,190,108,.36);padding:4px;box-sizing:border-box;}
+#ovTradMini .ng-gd .gd-center .ng-card.mini{margin-left:-8px;}
+#ovTradMini .ng-gd .gd-bottom{width:100%;}
+
+/* ④ HUD 统一再来一局/棋盘按钮微调 */
+.mini-hud #mxAgainBtn,.mini-hud #mxGbThemeBtn{font-size:12px;white-space:nowrap;}
+
+/* ⑤ 五子棋：棋子落十字交叉点 + 三种棋盘配色 */
+#miniStage #gb.gb-cross::before{
+  background:
+    repeating-linear-gradient(0deg,transparent 0 calc(var(--cs)/2 - .5px),rgba(230,196,120,.32) calc(var(--cs)/2 - .5px) calc(var(--cs)/2 + .5px),transparent calc(var(--cs)/2 + .5px) var(--cs)),
+    repeating-linear-gradient(90deg,transparent 0 calc(var(--cs)/2 - .5px),rgba(230,196,120,.32) calc(var(--cs)/2 - .5px) calc(var(--cs)/2 + .5px),transparent calc(var(--cs)/2 + .5px) var(--cs))!important;
+  opacity:.72!important;}
+#miniStage #gb.gb-t0{background:radial-gradient(circle at 30% 20%,#2f4a40,#16251f 70%,#0c1612 100%)!important;}
+#miniStage #gb.gb-t1{background:radial-gradient(circle at 30% 20%,#7a5a34,#432d17 70%,#261809 100%)!important;}
+#miniStage #gb.gb-t2{background:radial-gradient(circle at 30% 20%,#33586b,#1b3644 70%,#0d2029 100%)!important;}
+</style>
+<script>
+(function(){
+  if(window.__MX_V173) return; window.__MX_V173=true;
+  function fmt(n){return (n||0).toLocaleString('en-US');}
+  /* ===== ① 按游戏分别记录积分 ===== */
+  function getBy(){try{return JSON.parse(localStorage.getItem('mx_mini_bygame')||'{}');}catch(e){return{};}}
+  function saveBy(o){try{localStorage.setItem('mx_mini_bygame',JSON.stringify(o));}catch(e){}}
+  function curGameKey(){
+    try{
+      var tm=document.getElementById('ovTradMini');
+      if(tm&&tm.classList.contains('show')&&window.__MX_CUR_TRAD) return 't:'+window.__MX_CUR_TRAD;
+      var om=document.getElementById('ovMini');
+      if(om&&om.classList.contains('show')&&window.__MX_CUR_HIST) return 'h:'+window.__MX_CUR_HIST;
+    }catch(e){}
+    return '';
+  }
+  /* 捕获 mx_mini_score 写入增量并归属到当前游戏：覆盖所有 add(闭包)/充值/结算写入路径 */
+  (function(){
+    var proto=window.Storage&&Storage.prototype; if(!proto) return;
+    var orig=proto.setItem;
+    proto.setItem=function(k,v){
+      if(k==='mx_mini_score'){
+        try{
+          var old=parseInt(this.getItem(k)||'0',10)||0, nv=parseInt(v,10)||0, d=nv-old;
+          if(d>0){ var key=curGameKey(); if(key){ var m=getBy(); m[key]=(m[key]||0)+d; saveBy(m); } }
+        }catch(e){}
+      }
+      return orig.call(this,k,v);
+    };
+  })();
+  /* 记录当前校史游戏 */
+  var _mp=window.mxPlayGame;
+  if(_mp) window.mxPlayGame=function(k){ window.__MX_CUR_HIST=k; return _mp.apply(this,arguments); };
+
+  /* ===== ④再来一局 / ⑤棋盘配色 按钮注入 ===== */
+  var GB=['经典墨绿','暖木棕','青瓷蓝'];
+  function gbT(){try{return (parseInt(localStorage.getItem('mx_gobang_theme')||'0',10)||0)%3;}catch(e){return 0;}}
+  function applyGb(){
+    var b=document.querySelector('#miniStage #gb'); if(!b) return;
+    b.classList.add('gb-cross');
+    b.classList.remove('gb-t0','gb-t1','gb-t2'); b.classList.add('gb-t'+gbT());
+    var btn=document.getElementById('mxGbThemeBtn'); if(btn) btn.textContent='🎨'+GB[gbT()];
+  }
+  function injectHud(){
+    var tm=document.getElementById('ovTradMini'); if(!tm||!tm.classList.contains('show')) return;
+    var hud=tm.querySelector('.mini-hud'); if(!hud) return;
+    if(!document.getElementById('mxAgainBtn')){
+      var btn=document.createElement('button'); btn.className='mini-howto-btn'; btn.id='mxAgainBtn';
+      btn.textContent='🔄再来一局'; btn.title='立即重新开局';
+      btn.onclick=function(){ try{ if(window.__MX_CUR_TRAD) window.MX_TRAD.play(window.__MX_CUR_TRAD); }catch(e){} };
+      var a=document.getElementById('miniDialect');
+      if(a&&a.parentNode===hud) hud.insertBefore(btn,a.nextSibling); else hud.appendChild(btn);
+    }
+    if(window.__MX_CUR_TRAD==='gobang'){
+      if(!document.getElementById('mxGbThemeBtn')){
+        var gb=document.createElement('button'); gb.className='mini-howto-btn'; gb.id='mxGbThemeBtn';
+        gb.title='切换棋盘颜色';
+        gb.onclick=function(){ try{localStorage.setItem('mx_gobang_theme',String((gbT()+1)%3));}catch(e){} applyGb(); };
+        var ag=document.getElementById('mxAgainBtn');
+        if(ag) hud.insertBefore(gb,ag.nextSibling); else hud.appendChild(gb);
+      }
+      applyGb();
+    }
+  }
+  var _tp=window.MX_TRAD&&window.MX_TRAD.play;
+  if(_tp) window.MX_TRAD.play=function(id){
+    window.__MX_CUR_TRAD=id;
+    var r=_tp.apply(this,arguments);
+    try{ injectHud(); }catch(e){}
+    setTimeout(function(){ try{ injectHud(); applyGb(); }catch(e){} },90);
+    return r;
+  };
+
+  /* ===== ① 列表卡片积分显示 ===== */
+  function injectScores(){
+    var grid=document.getElementById('gameGrid'); if(!grid) return;
+    var by=getBy(), cards=grid.querySelectorAll('.game-card');
+    for(var i=0;i<cards.length;i++){
+      var c=cards[i], k=c.getAttribute('data-k'), tid=c.getAttribute('data-tid');
+      var key=k?('h:'+k):(tid?('t:'+tid):''), sc=key?(by[key]||0):0;
+      var el=c.querySelector('.gc-score');
+      if(!el){ el=document.createElement('div'); el.className='gc-score'; c.appendChild(el); }
+      var html='🏆 '+fmt(sc); if(el.innerHTML!==html) el.innerHTML=html;
+    }
+    var sub=document.getElementById('gamesSub');
+    if(sub){
+      var bar=document.getElementById('mxMiniTotalBar');
+      if(!bar){ bar=document.createElement('div'); bar.id='mxMiniTotalBar'; sub.parentNode.insertBefore(bar,sub.nextSibling); }
+      var bhtml='🎮 所有小游戏累计积分 <b>'+fmt(window.MX_MINI?window.MX_MINI.get():0)+'</b> · 每款得分见卡片角标';
+      if(bar.innerHTML!==bhtml) bar.innerHTML=bhtml;
+    }
+  }
+  var _og=window.mxOpenGames;
+  if(_og) window.mxOpenGames=function(){
+    var r=_og.apply(this,arguments); try{ injectScores(); }catch(e){} return r;
+  };
+  var _ol=window.mxOpenTradLobby;
+  if(_ol) window.mxOpenTradLobby=function(){
+    var r=_ol.apply(this,arguments); try{ setTimeout(injectScores,0); }catch(e){} return r;
+  };
+  /* 低频兜底：仅在游戏列表可见时刷新，且仅在值变化时写 DOM */
+  function tick(){ try{ var ov=document.getElementById('ovGames'); if(ov&&ov.classList.contains('show')) injectScores(); }catch(e){} }
+  if(window.__MX_POLL&&window.__MX_POLL.add) window.__MX_POLL.add(tick);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(injectScores,0);});
+  else setTimeout(injectScores,0);
+})();
+</script>
+
+<!-- ============ v174 · 电影剧院级射击巨作：飞机大战 / 坦克大战（自包含引擎+影院视听） ============ -->
+<style>
+/* ===== v174 影院舞台：铺满 mini-content，独立画布 ===== */
+#ovTradMini .mini-content.v174-stage{overflow:hidden;}
+.v174-wrap{position:absolute;inset:0;overflow:hidden;background:#05070e;
+  --cine-gold:#f2c96b;--cine-glow:0 0 18px rgba(242,201,107,.55);}
+.v174-wrap canvas.v174-cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+/* 银幕暗角 + 放映光束 */
+.v174-wrap::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:6;
+  background:radial-gradient(ellipse at 50% 42%,transparent 52%,rgba(0,0,0,.34) 82%,rgba(0,0,0,.66) 100%);}
+.v174-beam{position:absolute;top:-12%;left:50%;width:150%;height:130%;pointer-events:none;z-index:2;opacity:.16;
+  transform:translateX(-50%);background:linear-gradient(180deg,rgba(255,246,214,.5),transparent 62%);
+  clip-path:polygon(46% 0,54% 0,86% 100%,14% 100%);animation:v174Beam 7s ease-in-out infinite alternate;}
+@keyframes v174Beam{0%{transform:translateX(-52%) skewX(-3deg);opacity:.12}100%{transform:translateX(-48%) skewX(3deg);opacity:.22}}
+/* 胶片齿孔 */
+.v174-film{position:absolute;left:0;right:0;height:12px;pointer-events:none;z-index:7;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.85) 0 9px,transparent 9px 20px);opacity:.55;}
+.v174-film.top{top:0;} .v174-film.bot{bottom:0;}
+/* HUD 叠层 */
+.v174-hud{position:absolute;left:0;right:0;top:8px;z-index:8;padding:0 10px;pointer-events:none;
+  display:flex;flex-direction:column;gap:5px;font-family:system-ui,-apple-system,sans-serif;}
+.v174-hud .row{display:flex;align-items:center;gap:7px;}
+.v174-life,.v174-energy,.v174-prog{background:rgba(4,8,16,.62);border:1px solid rgba(242,201,107,.4);
+  border-radius:20px;padding:2px 9px;color:#ffe9b8;font-size:10.5px;font-weight:800;letter-spacing:.3px;
+  display:flex;align-items:center;gap:5px;backdrop-filter:blur(3px);}
+.v174-life b,.v174-energy b{color:#fff3d2;}
+.v174-bar{width:66px;height:7px;border-radius:5px;background:rgba(255,255,255,.14);overflow:hidden;border:1px solid rgba(255,255,255,.18);}
+.v174-bar>i{display:block;height:100%;border-radius:5px;transition:width .12s;}
+.v174-bar.life>i{background:linear-gradient(90deg,#e34b3c,#ff9d6e);box-shadow:0 0 8px rgba(255,90,70,.7);}
+.v174-bar.energy>i{background:linear-gradient(90deg,#2f8fe0,#7ee8ff);box-shadow:0 0 8px rgba(120,220,255,.7);}
+.v174-energy.full{animation:v174Pulse .7s ease-in-out infinite alternate;}
+@keyframes v174Pulse{from{box-shadow:0 0 4px rgba(126,232,255,.4)}to{box-shadow:0 0 16px rgba(126,232,255,.95)}}
+.v174-act{color:#ffe7a8;font-size:11px;font-weight:900;text-shadow:0 1px 4px #000,0 0 10px rgba(242,201,107,.6);}
+.v174-msg{position:absolute;left:0;right:0;top:40%;z-index:9;text-align:center;pointer-events:none;
+  color:#fff6d8;font-size:15px;font-weight:900;text-shadow:0 2px 10px #000;opacity:0;transition:opacity .25s;}
+.v174-msg.show{opacity:1;}
+/* 右下操作按钮 */
+.v174-actions{position:absolute;right:10px;bottom:16px;z-index:9;display:flex;flex-direction:column;gap:9px;align-items:flex-end;}
+.v174-acts-btn{pointer-events:auto;border:1px solid rgba(242,201,107,.7);border-radius:50%;width:52px;height:52px;
+  color:#fff4d4;font-size:20px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 35% 28%,rgba(255,230,160,.32),rgba(120,70,10,.55) 60%,rgba(30,18,4,.8));
+  box-shadow:0 2px 12px rgba(0,0,0,.5),inset 0 0 10px rgba(242,201,107,.25);text-shadow:0 0 8px rgba(255,220,120,.9);transition:transform .12s;}
+.v174-acts-btn:active{transform:scale(.9);}
+.v174-acts-btn.ult{border-color:#7ee8ff;background:radial-gradient(circle at 35% 28%,rgba(180,240,255,.4),rgba(20,90,150,.6) 60%,rgba(4,26,48,.85));box-shadow:0 0 16px rgba(120,220,255,.6);}
+.v174-acts-btn.ult.ready{animation:v174Ult 1s ease-in-out infinite alternate;}
+@keyframes v174Ult{from{box-shadow:0 0 8px rgba(120,220,255,.5)}to{box-shadow:0 0 26px rgba(150,235,255,1)}}
+.v174-acts-btn.cheer{width:46px;height:46px;font-size:17px;}
+/* 影院字幕卡 / 转场 / 结算 */
+.v174-cine{position:absolute;inset:0;z-index:12;pointer-events:none;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 50%,rgba(6,8,16,.7),rgba(0,0,0,.94));opacity:0;transition:opacity .5s;}
+.v174-cine.show{opacity:1;pointer-events:auto;}
+.v174-titlecard{text-align:center;color:#ffe9b0;transform:translateY(-6px);}
+.v174-titlecard .v174-kicker{font-size:10px;letter-spacing:5px;color:#e2be6c;opacity:.85;margin-bottom:12px;}
+.v174-titlecard .v174-big{font-size:26px;font-weight:900;letter-spacing:2px;text-shadow:0 0 24px rgba(242,201,107,.75),0 3px 6px #000;}
+.v174-titlecard .v174-sub{font-size:13px;margin-top:10px;color:#fff3d2;opacity:.9;}
+.v174-titlecard .v174-actno{margin-top:18px;font-size:12px;color:#f6cf7a;letter-spacing:2px;}
+.v174-titlecard .v174-hint{margin-top:24px;font-size:10px;color:#cbb785;opacity:.7;}
+.v174-skip{margin-top:18px;pointer-events:auto;color:#e8cf94;border:1px solid rgba(226,190,108,.5);border-radius:16px;
+  background:rgba(0,0,0,.35);padding:5px 16px;font-size:11px;font-weight:800;cursor:pointer;}
+/* 模式选择（火力/护航/黄金） */
+.v174-routes{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+.v174-route{pointer-events:auto;cursor:pointer;border:1px solid rgba(242,201,107,.55);border-radius:12px;
+  padding:9px 12px;min-width:84px;background:linear-gradient(180deg,rgba(40,30,12,.9),rgba(14,10,4,.95));
+  color:#ffe7a8;font-size:11px;font-weight:800;text-align:center;}
+.v174-route.sel{background:linear-gradient(180deg,rgba(242,201,107,.35),rgba(120,80,10,.5));box-shadow:var(--cine-glow);border-color:#ffe09a;}
+.v174-route small{display:block;font-size:8.5px;opacity:.7;margin-top:3px;font-weight:600;}
+/* 面板（暂停/体验/片单/助威团） */
+.v174-panel{position:absolute;inset:0;z-index:14;background:rgba(3,6,12,.9);display:none;
+  flex-direction:column;padding:16px;color:#f2dfae;font-family:system-ui,-apple-system,sans-serif;overflow:auto;}
+.v174-panel.show{display:flex;}
+.v174-panel h3{margin:2px 0 12px;font-size:16px;color:#ffe6a4;text-align:center;letter-spacing:1px;}
+.v174-panel .v174-close{align-self:flex-end;background:rgba(226,190,108,.18);border:1px solid rgba(226,190,108,.5);
+  color:#ffe6a4;border-radius:16px;padding:3px 12px;font-size:11px;cursor:pointer;}
+.v174-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 4px;
+  border-bottom:1px solid rgba(226,190,108,.16);font-size:12px;}
+.v174-opt .val{color:#ffe6a4;font-weight:800;}
+.v174-toggle{min-width:52px;padding:4px 10px;border-radius:14px;border:1px solid rgba(226,190,108,.5);
+  background:rgba(226,190,108,.14);color:#ffe6a4;font-size:11px;font-weight:800;cursor:pointer;}
+.v174-toggle.on{background:linear-gradient(180deg,#e2be6c,#b37016);color:#2a1c05;border-color:#ffe6a4;}
+.v174-prog-list{display:flex;flex-direction:column;gap:6px;}
+.v174-prog-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:10px;cursor:pointer;
+  border:1px solid rgba(226,190,108,.28);background:rgba(226,190,108,.07);font-size:11.5px;}
+.v174-prog-item.cur{border-color:#ffe09a;box-shadow:var(--cine-glow);background:rgba(242,201,107,.16);}
+.v174-prog-item .no{color:#f6cf7a;font-weight:900;min-width:20px;}
+.v174-badges{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
+.v174-badge{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;
+  background:rgba(226,190,108,.08);border:1px solid rgba(226,190,108,.22);filter:grayscale(1);opacity:.45;}
+.v174-badge.got{filter:none;opacity:1;border-color:#ffe09a;box-shadow:var(--cine-glow);background:rgba(242,201,107,.18);}
+.v174-title-note{text-align:center;font-size:11px;color:#f6cf7a;margin:6px 0 12px;line-height:1.6;}
+/* 低血量红晕 */
+.v174-danger{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0;
+  background:radial-gradient(ellipse at 50% 50%,transparent 40%,rgba(190,20,20,.55) 100%);transition:opacity .3s;}
+.v174-wrap.lowhp .v174-danger{opacity:1;animation:v174Heart 1s ease-in-out infinite alternate;}
+@keyframes v174Heart{from{opacity:.45}to{opacity:.95}}
+/* 闪白顿帧 */
+.v174-flash{position:absolute;inset:0;z-index:10;pointer-events:none;background:#fff;opacity:0;}
+.v174-flash.on{opacity:.7;}
+/* 结算谢幕 */
+.v174-result{text-align:center;color:#ffe9b0;}
+.v174-result .rg{font-size:40px;font-weight:900;text-shadow:0 0 26px rgba(242,201,107,.8);}
+.v174-result .rt{font-size:16px;margin:6px 0;}
+.v174-result .rd{font-size:11px;opacity:.82;line-height:1.8;margin:8px 0;}
+.v174-roll{max-height:96px;overflow:hidden;margin-top:8px;font-size:9.5px;color:#cbb785;line-height:1.7;opacity:.8;}
+.v174-result-btns{display:flex;gap:10px;justify-content:center;margin-top:16px;pointer-events:auto;}
+.v174-rbtn{padding:8px 18px;border-radius:18px;border:1px solid rgba(242,201,107,.6);cursor:pointer;
+  font-size:12px;font-weight:800;background:linear-gradient(180deg,#e2be6c,#b37016);color:#2a1c05;}
+.v174-rbtn.sec{background:rgba(226,190,108,.12);color:#ffe6a4;}
+.v174-mute{position:absolute;left:10px;bottom:14px;z-index:9;pointer-events:auto;cursor:pointer;
+  width:34px;height:34px;border-radius:50%;border:1px solid rgba(226,190,108,.45);background:rgba(4,8,16,.6);
+  color:#ffe6a4;font-size:15px;display:flex;align-items:center;justify-content:center;}
+/* v174 补丁：射击游戏时杉宝解说气泡下移，避免遮挡顶部HUD与底部按钮 */
+#miniStage .ftb.ftb-shoot{ top:auto !important; bottom:74px !important; right:8px !important;
+  max-width:min(70%,280px) !important; transform-origin:bottom right !important; }
+
+@media (max-width:360px){.v174-titlecard .v174-big{font-size:22px}.v174-bar{width:52px}.v174-hud{font-size:9.5px;}}
+</style>
+<script>
+/* ================= v174 电影剧院射击引擎（自包含 IIFE） ================= */
+(function(){
+if(window.__MX_SHOOT) return; window.__MX_SHOOT=true;
+'use strict';
+var $=function(id){return document.getElementById(id);};
+
+/* ---------- 1. 电影级音效引擎（Web Audio，自建，不依赖闭包内 FX） ---------- */
+var CineAudio=(function(){
+  var ctx=null, master=null, muted=false, bgmOn=true, beat=0, beatT=0;
+  function ensure(){
+    if(ctx) { if(ctx.state==='suspended') try{ctx.resume();}catch(e){} return ctx; }
+    try{
+      ctx=new (window.AudioContext||window.webkitAudioContext)();
+      master=ctx.createGain(); master.gain.value=muted?0:0.9; master.connect(ctx.destination);
+    }catch(e){ ctx=null; }
+    return ctx;
+  }
+  function tone(freq,dur,type,vol,when,slideTo){
+    var c=ensure(); if(!c||muted) return;
+    var o=c.createOscillator(),g=c.createGain(),t=c.currentTime+(when||0);
+    o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo),t+dur);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.2,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.03);
+  }
+  function noise(dur,vol,when,lp){
+    var c=ensure(); if(!c||muted) return;
+    var n=Math.floor(c.sampleRate*dur),buf=c.createBuffer(1,n,c.sampleRate),d=buf.getChannelData(0);
+    for(var i=0;i<n;i++) d[i]=(Math.random()*2-1)*(1-i/n);
+    var s=c.createBufferSource();s.buffer=buf;var g=c.createGain(),f=c.createBiquadFilter();
+    f.type='lowpass';f.frequency.value=lp||1800;g.gain.value=vol||0.2;
+    if(when){s.start(c.currentTime+when);}else{s.start();}
+    s.connect(f);f.connect(g);g.connect(master);
+  }
+  var api={
+    unlock:function(){ensure();},
+    setMuted:function(m){muted=!!m;if(master)master.gain.value=muted?0:0.9;},
+    isMuted:function(){return muted;},
+    setBgm:function(v){bgmOn=!!v;},
+    isBgm:function(){return bgmOn;},
+    laser:function(){tone(1250,0.12,'sawtooth',0.09,0,320);},
+    shoot:function(){tone(680,0.07,'square',0.07,0,240);},
+    hit:function(){tone(230,0.08,'sawtooth',0.12,0,120);noise(0.05,0.07,0,2600);},
+    boom:function(){tone(110,0.34,'sawtooth',0.22,0,32);noise(0.32,0.22,0,900);tone(64,0.42,'square',0.14,0.03,28);},
+    bigBoom:function(){tone(90,0.6,'sawtooth',0.28,0,26);noise(0.6,0.3,0,700);tone(48,0.8,'square',0.18,0.06,22);},
+    power:function(){[523,659,784].forEach(function(f,i){tone(f,0.12,'triangle',0.18,i*0.05);});},
+    coin:function(){tone(988,0.08,'triangle',0.16);tone(1319,0.1,'triangle',0.14,0.06);},
+    warn:function(){tone(300,0.5,'sawtooth',0.16,0,180);tone(150,0.6,'square',0.12,0.05,90);},
+    rumble:function(){tone(58,1.1,'sawtooth',0.2,0,40);noise(0.9,0.12,0,420);},
+    ult:function(){tone(180,0.7,'sawtooth',0.26,0,1400);noise(0.7,0.26,0,5200);[523,659,784,1047,1319].forEach(function(f,i){tone(f,0.3,'triangle',0.16,i*0.07);});},
+    cheer:function(){ /* 观众喝彩：多层噪声 + 上行和弦 */
+      noise(0.7,0.16,0,3200); [392,494,587,784].forEach(function(f,i){tone(f,0.35,'triangle',0.12,i*0.06);});
+      tone(1047,0.5,'sine',0.1,0.1);
+    },
+    victory:function(){[523,659,784,1047,784,1047,1319].forEach(function(f,i){tone(f,0.32,'triangle',0.2,i*0.13);});},
+    lose:function(){[392,330,262,196].forEach(function(f,i){tone(f,0.34,'sawtooth',0.16,i*0.16);});},
+    heartbeat:function(){tone(70,0.12,'sine',0.28,0,52);tone(66,0.14,'sine',0.24,0.18,48);},
+    phase:function(n){var col=[523,659,784];tone(col[n]||659,0.4,'triangle',0.2,0,col[n]*2);noise(0.3,0.12,0,2400);},
+    bgmTick:function(dt){
+      if(!bgmOn||muted) return;
+      beatT+=dt; if(beatT<0.42) return; beatT=0;
+      var scale=[196,220,262,294,330,294,262,220];
+      var f=scale[beat%scale.length];
+      tone(f,0.36,'sine',0.055);
+      if(beat%4===0) tone(f/2,0.5,'triangle',0.045);
+      if(beat%2===1) tone(f*2,0.12,'triangle',0.03);
+      beat++;
+    },
+    stopAll:function(){beat=0;beatT=0;}
+  };
+  return api;
+})();
+
+/* ---------- 2. 关卡/主题配置（九幕电影剧本） ---------- */
+var ACTS=[
+  {n:'晨曦旗山',sky:['#123a5e','#2f7fb5','#bfe4f0'],ground:'#3f7c46',accent:'#ffe08a',foe:'#7ec850',boss:'晨曦号'},
+  {n:'闽江春耕',sky:['#0d3a52','#2a8f9e','#a8e0d8'],ground:'#4a8d5a',accent:'#8ff0d0',foe:'#5fd0a8',boss:'春潮舰'},
+  {n:'荔枝盛夏',sky:['#4a1830','#c0434a','#ffcf8a'],ground:'#5a3a20',accent:'#ff9a6a',foe:'#ff6a5a',boss:'丹荔王'},
+  {n:'武夷云海',sky:['#1a2a52','#5a6fb0','#dfe8ff'],ground:'#3a4a7a',accent:'#cfe0ff',foe:'#8aa8ff',boss:'云海巨舰'},
+  {n:'金秋稻浪',sky:['#3a2a10','#b8862a','#ffe6a0'],ground:'#8a6a22',accent:'#ffd45a',foe:'#e0a83a',boss:'金穗堡'},
+  {n:'海滨晚霞',sky:['#3a1440','#c04a6a','#ffb27a'],ground:'#2a4a6a',accent:'#ff9ec0',foe:'#ff7a9a',boss:'晚霞号'},
+  {n:'星夜试验田',sky:['#05091e','#1a2a6a','#4a6fc0'],ground:'#12203a',accent:'#a0d8ff',foe:'#6ad0ff',boss:'星穹舰'},
+  {n:'高山雪域',sky:['#1a3045','#5a90b0','#f0f8ff'],ground:'#c8dcea',accent:'#ffffff',foe:'#bfe8ff',boss:'雪峰要塞'},
+  {n:'百年盛典',sky:['#2a0a2a','#8a1a4a','#ffd45a'],ground:'#4a1a2a',accent:'#ffe08a',foe:'#ff5a7a',boss:'百年·盛典巨舰'}
+];
+var THEMES=[
+  {n:'影院金',a:'#f2c96b',b:'#b37016',c:'#fff3d2'},
+  {n:'星海蓝',a:'#7ee8ff',b:'#1d6fb8',c:'#e0f7ff'},
+  {n:'戎装绿',a:'#9fe870',b:'#2f7a34',c:'#e8ffd8'}
+];
+var ALUMNI=['新生围观','青涩影迷','热情观众','资深粉丝','铁杆后援','金卡会员','荣誉理事','福农之光','传奇·九秩'];
+var BADGES=['🎬','🍿','⭐','🏅','🎟️','🎖️','👑','🌠','🏆'];
+var ROUTES=[
+  {id:'fire',n:'火力路线',d:'弹量+30% · 高爆发'},
+  {id:'escort',n:'护航路线',d:'护盾更久 · 高生存'},
+  {id:'gold',n:'黄金路线',d:'得分×1.3 · 高收益'}
+];
+
+/* ---------- 3. 主游戏类 ---------- */
+function Shooter(mode,stage,m){
+  this.mode=mode;                 // 'plane' | 'tank'
+  this.isTank=(mode==='tank');
+  this.stage=stage; this.m=m;
+  this.W=stage.clientWidth||350; this.H=stage.clientHeight||560;
+  this.t=THEMES[(parseInt(localStorage.getItem('mx_shoot_theme')||'0',10)||0)%3];
+  this.route=localStorage.getItem('mx_shoot_route')||'fire';
+  this.alumni=Math.min(8,Math.max(0,parseInt(localStorage.getItem('mx_shoot_alumni')||'0',10)||0));
+  this.cheers=parseInt(localStorage.getItem('mx_shoot_cheers')||'0',10)||0;
+  var rp=(function(){try{return JSON.parse(localStorage.getItem('mx_shoot_routes')||'[]');}catch(e){return[];}})();
+  this.routeLog=Array.isArray(rp)?rp:[];
+  this.settings={sfx:true,vibe:true,flash:true,burn:true,reduce:false};
+  try{var sg=JSON.parse(localStorage.getItem('mx_shoot_set')||'{}');for(var k in sg)if(k in this.settings)this.settings[k]=sg[k];}catch(e){}
+  try{ this.settings.reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  CineAudio.setMuted(!this.settings.sfx); CineAudio.setBgm(this.settings.sfx);
+
+  this.act=1; this.wave=0; this.waveKills=0; this.waveTarget=0;
+  this.lives=6; this.hp=3; this.score=0; this.combo=0; this.maxCombo=0;
+  this.energy=0; this.ultReady=false; this.invuln=0; this.shield=0;
+  this.spread=0; this.rapid=0; this.bulletMul=1;
+  this.bullets=[]; this.ebullets=[]; this.foes=[]; this.items=[]; this.parts=[]; this.texts=[];
+  this.boss=null; this.bossPhase=0; this.phaseAt=[0.66,0.33];
+  this.paused=false; this.ended=false; this.started=false; this.intro=true;
+  this.last=0; this.raf=0; this.shootCd=0; this.spawnCd=0; this.enemyShootCd=0;
+  this.timeLeft=62; this.kills=0; this.shots=0; this.hits=0; this.damage=0;
+  this.flashT=0; this.shakeT=0; this.slowmo=0; this.heartT=0;
+  this.player={x:this.W/2,y:this.H-64,r:15};
+  this.keyDir={l:0,r:0,u:0,d:0};
+  this.pointer=null;
+  this.dom=null; this.ctx=null; this.canvas=null;
+  this._build();
+}
+Shooter.prototype._build=function(){
+  var self=this;
+  var wrap=document.createElement('div'); wrap.className='v174-wrap'+(this.settings.reduce?' reduce':'');
+  wrap.innerHTML=
+    '<div class="v174-beam"></div>'+
+    '<div class="v174-danger"></div>'+
+    '<canvas class="v174-cv"></canvas>'+
+    '<div class="v174-film top"></div><div class="v174-film bot"></div>'+
+    '<div class="v174-hud">'+
+      '<div class="row"><span class="v174-act" id="vaAct">ACT 1 · 晨曦旗山</span></div>'+
+      '<div class="row"><span class="v174-life">❤ <span class="v174-bar life"><i></i></span> <b id="vaHp">3</b>×<span id="vaLv">6</span></span>'+
+      '<span class="v174-energy" id="vaEnBox">⚡ <span class="v174-bar energy"><i></i></span> <b id="vaEn">0</b>%</span></div>'+
+      '<div class="row"><span class="v174-prog">🎯 击破 <b id="vaKill">0/0</b> · ⏱ <b id="vaTime">62</b>s</span></div>'+
+    '</div>'+
+    '<div class="v174-msg" id="vaMsg"></div>'+
+    '<div class="v174-flash" id="vaFlash"></div>'+
+    '<div class="v174-actions">'+
+      '<button class="v174-acts-btn ult" id="vaUlt" title="百年大招（空格）">⚡</button>'+
+      '<button class="v174-acts-btn cheer" id="vaCheer" title="观众应援（C）">👏</button>'+
+    '</div>'+
+    '<button class="v174-mute" id="vaMute" title="音效开关">'+(this.settings.sfx?'🔊':'🔇')+'</button>'+
+    '<div class="v174-cine" id="vaCine"></div>'+
+    '<div class="v174-panel" id="vaPanel"></div>';
+  var mc=this.stage.querySelector('.mini-content');
+  mc.classList.add('v174-stage'); mc.innerHTML=''; mc.appendChild(wrap);
+  this.dom={
+    wrap:wrap, act:$('vaAct'), hp:$('vaHp'), lv:$('vaLv'), en:$('vaEn'), enBox:$('vaEnBox'),
+    kill:$('vaKill'), time:$('vaTime'), msg:$('vaMsg'), flash:$('vaFlash'),
+    lifeBar:wrap.querySelector('.v174-bar.life i'), enBar:wrap.querySelector('.v174-bar.energy i'),
+    ult:$('vaUlt'), cheer:$('vaCheer'), mute:$('vaMute'), cine:$('vaCine'), panel:$('vaPanel')
+  };
+  this.canvas=wrap.querySelector('canvas.v174-cv');
+  this.canvas.width=this.W; this.canvas.height=this.H;
+  this.ctx=this.canvas.getContext('2d');
+  this._bind();
+  /* 解说气泡避让：射击模式下移到底部 */
+  (function tagBubble(n){var ft=document.getElementById('fafuTalkBubble');
+    if(ft){ft.classList.add('ftb-shoot');return;}
+    if(n<12) setTimeout(function(){tagBubble(n+1);},120);
+  })(0);
+  this._showIntro();
+};
+Shooter.prototype._bind=function(){
+  var self=this,cv=this.canvas;
+  var toLocal=function(e){var r=cv.getBoundingClientRect();var x=(e.touches?e.touches[0].clientX:e.clientX)-r.left;var y=(e.touches?e.touches[0].clientY:e.clientY)-r.top;return{x:x*self.W/r.width,y:y*self.H/r.height};};
+  var move=function(e){if(self.paused||self.intro||self.ended)return;var p=toLocal(e);self.player.x=Math.max(16,Math.min(self.W-16,p.x));self.player.y=Math.max(self.H*0.45,Math.min(self.H-30,p.y));if(e.cancelable)e.preventDefault();};
+  cv.addEventListener('touchstart',function(e){CineAudio.unlock();move(e);},{passive:false});
+  cv.addEventListener('touchmove',move,{passive:false});
+  cv.addEventListener('mousedown',function(e){CineAudio.unlock();self.pointer=true;move(e);});
+  window.addEventListener('mousemove',function(){if(self.pointer&&!self.paused&&!self.intro&&!self.ended)move(event);});
+  window.addEventListener('mouseup',function(){self.pointer=false;});
+  cv.addEventListener('dblclick',function(){self.tryUlt();});
+  this.dom.ult.onclick=function(){CineAudio.unlock();self.tryUlt();};
+  this.dom.cheer.onclick=function(){CineAudio.unlock();self.cheer();};
+  this.dom.mute.onclick=function(){self.settings.sfx=!self.settings.sfx;CineAudio.setMuted(!self.settings.sfx);CineAudio.setBgm(self.settings.sfx);self.dom.mute.textContent=self.settings.sfx?'🔊':'🔇';self._saveSet();};
+  this._keyDown=function(e){
+    CineAudio.unlock();
+    var k=e.key.toLowerCase();
+    if(k==='p'||k==='escape'){self.togglePause();return;}
+    if(k===' '){e.preventDefault();if(self.intro){self._skipIntro();return;}self.tryUlt();return;}
+    if(k==='c'){self.cheer();return;}
+    if(k==='g'){self.showAlumni();return;}
+    if(k==='a'||k==='arrowleft')self.keyDir.l=1;
+    if(k==='d'||k==='arrowright')self.keyDir.r=1;
+    if(k==='w'||k==='arrowup')self.keyDir.u=1;
+    if(k==='s'||k==='arrowdown')self.keyDir.d=1;
+  };
+  this._keyUp=function(e){var k=e.key.toLowerCase();
+    if(k==='a'||k==='arrowleft')self.keyDir.l=0;
+    if(k==='d'||k==='arrowright')self.keyDir.r=0;
+    if(k==='w'||k==='arrowup')self.keyDir.u=0;
+    if(k==='s'||k==='arrowdown')self.keyDir.d=0;};
+  window.addEventListener('keydown',this._keyDown);window.addEventListener('keyup',this._keyUp);
+};
+Shooter.prototype._saveSet=function(){try{localStorage.setItem('mx_shoot_set',JSON.stringify(this.settings));}catch(e){}};
+Shooter.prototype._msg=function(t,ms){var e=this.dom.msg;e.textContent=t;e.classList.add('show');clearTimeout(this._msgT);this._msgT=setTimeout(function(){e.classList.remove('show');},ms||1200);};
+Shooter.prototype._flash=function(){if(!this.settings.flash||this.settings.reduce)return;var e=this.dom.flash;e.classList.add('on');var s=this;setTimeout(function(){e.classList.remove('on');},70);};
+Shooter.prototype._shake=function(n){if(this.settings.reduce)return;this.shakeT=n||8;};
+Shooter.prototype._vibe=function(ms){if(!this.settings.vibe||this.settings.reduce)return;try{navigator.vibrate&&navigator.vibrate(ms||30);}catch(e){}};
+
+/* ---------- 4. 影院仪式：片头字幕卡 / 路线选择 / 转场 ---------- */
+Shooter.prototype._showIntro=function(){
+  var self=this,cn=this.dom.cine;
+  var act=ACTS[this.act-1];
+  this.intro=true;
+  var title=(this.isTank?'明溪·护林战记':'明溪·飞天逐梦');
+  cn.innerHTML='<div class="v174-titlecard">'+
+    '<div class="v174-kicker">F U J I A N　N O R M A L　U N I V E R S I T Y</div>'+
+    '<div class="v174-big">'+title+'</div>'+
+    '<div class="v174-sub">'+(this.isTank?'坦克大战 · 电影剧院巨作':'飞机大战 · 电影剧院巨作')+'</div>'+
+    '<div class="v174-actno">第 '+this.act+' 幕 / 共 9 幕　·　'+act.n+'</div>'+
+    '<div class="v174-routes">'+ROUTES.map(function(r){return '<div class="v174-route'+(self.route===r.id?' sel':'')+'" data-r="'+r.id+'">'+r.n+'<small>'+r.d+'</small></div>';}).join('')+'</div>'+
+    '<button class="v174-skip" id="vaSkip">▶ 开映</button>'+
+    '<div class="v174-hint">拖动'+(this.isTank?'战车':'战机')+'移动 · 自动开火 · 空格大招 · C 应援</div>'+
+    '</div>';
+  cn.classList.add('show');
+  var skip=$('vaSkip'); if(skip) skip.onclick=function(){self._skipIntro();};
+  cn.querySelectorAll('.v174-route').forEach(function(el){el.onclick=function(){
+    self.route=el.getAttribute('data-r');
+    try{localStorage.setItem('mx_shoot_route',self.route);}catch(e){}
+    cn.querySelectorAll('.v174-route').forEach(function(x){x.classList.toggle('sel',x===el);});
+    CineAudio.coin();
+  };});
+  CineAudio.warn();
+  if(this.settings.sfx) CineAudio.cheer();
+};
+Shooter.prototype._skipIntro=function(){
+  var self=this;
+  this.dom.cine.classList.remove('show');
+  this.intro=false; this.started=true;
+  if(!this.waveTarget){this._nextWave();}
+  this.m.startT=Date.now();
+  this._msg('ACT '+this.act+' · '+ACTS[this.act-1].n,1500);
+  CineAudio.victory();
+  if(!this.raf){this.last=performance.now();this.raf=requestAnimationFrame(function(t){self._loop(t);});}
+};
+Shooter.prototype._nextWave=function(){
+  this.wave++;
+  var isBossWave=(this.wave%3===0);
+  if(isBossWave){
+    this.waveTarget=1; this.waveKills=0;
+    this._spawnBoss();
+    this._msg('⚠ BOSS 来袭 · '+ACTS[this.act-1].boss,2000);
+    CineAudio.warn(); CineAudio.rumble(); this._shake(14);
+  }else{
+    this.waveTarget=6+this.act*2+this.wave;
+    this.waveKills=0; this.spawnCd=0;
+    this._msg('第 '+this.wave+' 波 · 消灭 '+this.waveTarget+' 架',1100);
+  }
+};
+/* ---------- 5. 生成器 ---------- */
+Shooter.prototype._spawnFoe=function(){
+  var a=ACTS[this.act-1],elite=Math.random()<0.12;
+  var f={x:20+Math.random()*(this.W-40),y:-24,r:elite?16:12,hp:elite?4:1+(this.act>4?1:0),
+    maxhp:elite?4:1+(this.act>4?1:0),elite:elite,vx:(Math.random()-0.5)*0.6,vy:0.7+Math.random()*0.6+this.act*0.06,
+    col:elite?'#ffd45a':a.foe,t:Math.random()*6,shoot:Math.random()<0.32,phase:Math.random()*6};
+  this.foes.push(f);
+};
+Shooter.prototype._spawnBoss=function(){
+  var a=ACTS[this.act-1];
+  var hp=60+this.act*22;
+  this.boss={x:this.W/2,y:-90,ty:78,hp:hp,maxhp:hp,w:74,h:44,col:a.accent,t:0,entering:true,phase:0,fireCd:0,moveT:0};
+  this.bossPhase=0;
+};
+Shooter.prototype._drop=function(x,y,elite){
+  var r=Math.random();
+  if(r<0.10){this.items.push({x:x,y:y,type:'life',vy:1.4,t:0});}
+  else if(r<0.24){this.items.push({x:x,y:y,type:'spread',vy:1.5,t:0});}
+  else if(r<0.36){this.items.push({x:x,y:y,type:'shield',vy:1.5,t:0});}
+  else if(r<0.46){this.items.push({x:x,y:y,type:'rapid',vy:1.6,t:0});}
+  else if(r<0.53){this.items.push({x:x,y:y,type:'time',vy:1.3,t:0});}
+  else if(elite||r<0.58){this.items.push({x:x,y:y,type:'coin',vy:1.8,t:0});}
+};
+/* ---------- 6. 射击 / 大招 / 应援 ---------- */
+Shooter.prototype._shoot=function(){
+  var y=this.player.y-14, mul=this.route==='fire'?1.3:1;
+  if(this.spread>0){
+    [-1,0,1].forEach(function(d){this.bullets.push({x:this.player.x+d*9,y:y,vx:d*1.6,vy:-9.5,dmg:1.1*mul,c:'#ffe08a'});},this);
+  }else{
+    this.bullets.push({x:this.player.x-5,y:y,vx:0,vy:-9.5,dmg:1*mul,c:this.t.a});
+    this.bullets.push({x:this.player.x+5,y:y,vx:0,vy:-9.5,dmg:1*mul,c:this.t.a});
+  }
+  this.shots+=2;
+  CineAudio.shoot();
+};
+Shooter.prototype.tryUlt=function(){
+  if(this.intro||this.paused||this.ended||!this.started) return;
+  if(!this.ultReady){this._msg('⚡ 能量未满 '+Math.floor(this.energy)+'%',800);return;}
+  this.ultReady=false; this.energy=0; this.invuln=Math.max(this.invuln,1.4);
+  CineAudio.ult(); this._flash(); this._shake(20); this._vibe(120);
+  this._msg('⚡ 百年·'+(this.isTank?'明溪炮阵':'星海光矛')+'！',1800);
+  var dmg=40+this.act*8;
+  this.foes.forEach(function(f){f.hp-=dmg;},this);
+  if(this.boss) this._hitBoss(dmg);
+  this.ebullets.length=0;
+  for(var i=0;i<46;i++){var a=Math.random()*6.28,s=3+Math.random()*7;
+    this.parts.push({x:this.W/2,y:this.H/2,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1.3,col:i%2?'#7ee8ff':'#fff3d2',r:2+Math.random()*3});}
+  this._syncHud();
+};
+Shooter.prototype.cheer=function(){
+  if(this.intro||this.ended) return;
+  this.cheers++; this.energy=Math.min(100,this.energy+4);
+  try{localStorage.setItem('mx_shoot_cheers',String(this.cheers));}catch(e){}
+  CineAudio.cheer();
+  var os=8+this.alumni*2;
+  for(var i=0;i<os;i++){this.parts.push({x:Math.random()*this.W,y:this.H+10,vx:(Math.random()-0.5)*2,vy:-4-Math.random()*4,life:1.6,col:i%3===0?'#ffe08a':(i%3===1?'#ff7a9a':'#7ee8ff'),r:2+Math.random()*2});}
+  if(this.cheers%5===0){this._msg('👏 全场起立喝彩！',1300);CineAudio.victory();this.energy=Math.min(100,this.energy+10);}
+  this._checkUlt();
+};
+Shooter.prototype._checkUlt=function(){
+  if(this.energy>=100&&!this.ultReady){this.ultReady=true;this.dom.ult.classList.add('ready');this.dom.enBox.classList.add('full');CineAudio.power();this._msg('⚡ 大招就绪 · 空格释放',1200);}
+};
+
+/* ---------- 7. 主循环 ---------- */
+Shooter.prototype._loop=function(ts){
+  if(this.ended){this.raf=0;return;}
+  var self=this;
+  var dt=Math.min(0.05,(ts-this.last)/1000)||0.016; this.last=ts;
+  if(!this.paused&&!this.intro){
+    var scale=this.slowmo>0?0.35:1;
+    if(this.slowmo>0)this.slowmo-=dt;
+    this._update(dt*scale);
+    CineAudio.bgmTick(dt);
+  }
+  this._draw();
+  this.raf=requestAnimationFrame(function(t){self._loop(t);});
+};
+Shooter.prototype._update=function(dt){
+  var i,j,f,b;
+  // 计时
+  this.timeLeft-=dt;
+  if(this.timeLeft<=0){this._loseLife(true);this.timeLeft=62;}
+  // 键盘移动
+  var sp=4.2;
+  if(this.keyDir.l)this.player.x-=sp; if(this.keyDir.r)this.player.x+=sp;
+  if(this.keyDir.u)this.player.y-=sp; if(this.keyDir.d)this.player.y+=sp;
+  this.player.x=Math.max(16,Math.min(this.W-16,this.player.x));
+  this.player.y=Math.max(this.H*0.45,Math.min(this.H-30,this.player.y));
+  // 计时器状态
+  if(this.invuln>0)this.invuln-=dt; if(this.shield>0)this.shield-=dt;
+  if(this.spread>0)this.spread-=dt; if(this.rapid>0)this.rapid-=dt;
+  this.shootCd-=dt; this.spawnCd-=dt; this.enemyShootCd-=dt;
+  if(this.shootCd<=0){this._shoot();this.shootCd=(this.rapid>0?0.075:0.14)*(this.route==='fire'?0.85:1);}
+  // 生成普通敌人
+  if(!this.boss&&this.foes.length<14&&this.spawnCd<=0&&this.waveKills<this.waveTarget){
+    this._spawnFoe(); if(this.act>3&&Math.random()<0.4)this._spawnFoe();
+    this.spawnCd=Math.max(0.22,0.62-this.act*0.03);
+  }
+  // 敌弹
+  if(this.enemyShootCd<=0){
+    this.enemyShootCd=this.isTank?1.05:0.92;
+    var shooters=this.foes.filter(function(x){return x.shoot&&x.y>10&&x.y<this.H*0.7;},this);
+    if(shooters.length){var s=shooters[Math.floor(Math.random()*shooters.length)];this.ebullets.push({x:s.x,y:s.y+10,vx:0,vy:2.6+(this.act*0.1),r:3,c:'#ff6a5a'});}
+  }
+  // 敌人更新
+  for(i=this.foes.length-1;i>=0;i--){
+    f=this.foes[i]; f.y+=f.vy; f.x+=f.vx+Math.sin(f.t)*0.4; f.t+=0.06;
+    if(f.x<12||f.x>this.W-12)f.vx*=-1;
+    if(f.y>this.H+24){this.foes.splice(i,1);continue;}
+    // 中弹
+    for(j=this.bullets.length-1;j>=0;j--){
+      b=this.bullets[j];
+      if(Math.abs(b.x-f.x)<f.r+3&&Math.abs(b.y-f.y)<f.r+6){
+        f.hp-=b.dmg; this.hits++; this.bullets.splice(j,1);
+        CineAudio.hit(); this._burst(f.x,f.y,f.col,5);
+        if(f.hp<=0){this._killFoe(i,f);}
+        break;
+      }
+    }
+  }
+  // Boss更新
+  if(this.boss)this._updateBoss(dt);
+  // 玩家子弹更新
+  for(i=this.bullets.length-1;i>=0;i--){b=this.bullets[i];b.x+=b.vx;b.y+=b.vy;if(b.y<-10||b.x<-10||b.x>this.W+10)this.bullets.splice(i,1);}
+  // 敌弹更新 + 命中玩家
+  for(i=this.ebullets.length-1;i>=0;i--){
+    b=this.ebullets[i];b.x+=b.vx;b.y+=b.vy;
+    if(b.y>this.H+10){this.ebullets.splice(i,1);continue;}
+    if(Math.abs(b.x-this.player.x)<this.player.r&&Math.abs(b.y-this.player.y)<this.player.r){this.ebullets.splice(i,1);this._hitPlayer();}
+  }
+  // 道具更新
+  for(i=this.items.length-1;i>=0;i--){
+    var it=this.items[i];it.y+=it.vy;it.t+=0.08;
+    if(it.y>this.H+12){this.items.splice(i,1);continue;}
+    if(Math.abs(it.x-this.player.x)<20&&Math.abs(it.y-this.player.y)<20){this._pick(it);this.items.splice(i,1);}
+  }
+  // 粒子/文字
+  for(i=this.parts.length-1;i>=0;i--){var p=this.parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.06;p.life-=dt*1.5;if(p.life<=0)this.parts.splice(i,1);}
+  for(i=this.texts.length-1;i>=0;i--){var tx=this.texts[i];tx.y-=0.7;tx.life-=dt;if(tx.life<=0)this.texts.splice(i,1);}
+  if(this.shakeT>0)this.shakeT-=dt*60;
+  this.heartT-=dt;
+  if(this.lives<=2&&this.heartT<=0){CineAudio.heartbeat();this.heartT=1.15;}
+  this._syncHud();
+};
+Shooter.prototype._killFoe=function(i,f){
+  this.foes.splice(i,1);this.kills++;this.waveKills++;
+  CineAudio.boom();this._burst(f.x,f.y,'#ffcf6a',14);this._shake(5);
+  var base=Math.round((f.elite?120:40)*(this.route==='gold'?1.3:1));
+  this._addScore(base);this._bumpCombo();
+  this.energy=Math.min(100,this.energy+(f.elite?9:3)*(this.settings.burn?1.3:1));
+  this._drop(f.x,f.y,f.elite);this._checkUlt();
+  if(!this.boss&&this.waveKills>=this.waveTarget){this._nextWave();}
+};
+Shooter.prototype._updateBoss=function(dt){
+  var b=this.boss;b.t+=dt;
+  if(b.entering){b.y+=(b.ty-b.y)*0.05;if(Math.abs(b.y-b.ty)<2)b.entering=false;return;}
+  b.moveT+=dt;b.x=this.W/2+Math.sin(b.moveT*0.7)*(this.W*0.28);
+  // 阶段判定
+  var frac=b.hp/b.maxhp,ph=frac<=0.33?2:(frac<=0.66?1:0);
+  if(ph>b.phase){this.bossPhase=ph;b.phase=ph;b.hp=b.maxhp*(ph===1?0.66:0.33);
+    CineAudio.phase(ph);this._flash();this._shake(18);this._vibe(90);
+    var arr=['巡航·明溪印记','变形·'+ (this.isTank?'交错弹幕墙':'环形扩散'),'残血·'+(this.isTank?'六列分裂弹':'螺旋追踪')];
+    this._msg('BOSS P'+(ph+1)+' · '+arr[ph],1800);
+    for(var i=0;i<30;i++){var a=Math.random()*6.28; this.parts.push({x:b.x,y:b.y,vx:Math.cos(a)*5,vy:Math.sin(a)*5,life:1,col:ph===1?'#7ee8ff':'#ff6a6a',r:3});}
+  }
+  // 弹幕
+  b.fireCd-=dt;
+  if(b.fireCd<=0){
+    b.fireCd=ph===0?0.95:(ph===1?0.62:0.42);
+    if(this.isTank){
+      if(ph===0){this.ebullets.push({x:b.x,y:b.y+18,vx:0,vy:3,r:4,c:'#ff5a4a'});}
+      else if(ph===1){[-1,1].forEach(function(d){this.ebullets.push({x:b.x+d*24,y:b.y+16,vx:d*0.6,vy:3.2,r:4,c:'#7ee8ff'});},this);}
+      else{for(var c=0;c<6;c++){this.ebullets.push({x:20+c*(this.W-40)/5,y:b.y+16,vx:0,vy:2.8+Math.random(),r:4,c:'#ff5a7a'});}}
+    }else{
+      if(ph===0){this.ebullets.push({x:b.x,y:b.y+18,vx:(Math.random()-0.5),vy:2.8,r:4,c:'#ff5a4a'});}
+      else if(ph===1){for(var k=0;k<8;k++){var a=k/8*6.28;this.ebullets.push({x:b.x,y:b.y,vx:Math.cos(a)*2.4,vy:Math.sin(a)*2.4,r:3.5,c:'#7ee8ff'});}}
+      else{var a2=b.t*2.2;this.ebullets.push({x:b.x,y:b.y,vx:Math.cos(a2)*1.8,vy:Math.abs(Math.sin(a2))*3+1,r:3.5,c:'#ff5a7a'});}
+    }
+  }
+  // Boss中弹
+  for(var j=this.bullets.length-1;j>=0;j--){var bl=this.bullets[j];
+    if(Math.abs(bl.x-b.x)<b.w/2&&Math.abs(bl.y-b.y)<b.h/2+8){
+      this._hitBoss(bl.dmg);this.bullets.splice(j,1);CineAudio.hit();this._burst(bl.x,bl.y,'#fff3d2',3);break;
+    }
+  }
+};
+Shooter.prototype._hitBoss=function(dmg){
+  var b=this.boss;if(!b)return;b.hp-=dmg;this.hits++;
+  this.energy=Math.min(100,this.energy+0.4*(this.settings.burn?1.3:1));this._checkUlt();
+  if(b.hp<=0){
+    CineAudio.bigBoom();this._flash();this._shake(26);this._vibe(160);
+    for(var i=0;i<46;i++){var a=Math.random()*6.28,s=2+Math.random()*8;this.parts.push({x:b.x,y:b.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1.4,col:i%2?'#ffe08a':'#ff6a5a',r:2+Math.random()*4});}
+    this._addScore(Math.round((500+this.act*100)*(this.route==='gold'?1.3:1)));
+    this.boss=null;this.waveKills=this.waveTarget;
+    this._levelClear();
+  }
+};
+Shooter.prototype._hitPlayer=function(){
+  if(this.invuln>0)return;
+  if(this.shield>0){this.shield=0;this.invuln=0.8;CineAudio.power();this._msg('🛡 护盾抵消',700);return;}
+  this.hp--;this.damage++;this.invuln=1.1;CineAudio.boom();this._flash();this._shake(14);this._vibe(90);
+  this._burst(this.player.x,this.player.y,'#ff6a5a',12);
+  this.combo=0;
+  if(this.hp<=0){this._loseLife(false);}
+};
+Shooter.prototype._loseLife=function(timeout){
+  this.lives--;this.hp=3;this.invuln=2;
+  if(!timeout){CineAudio.bigBoom();this._shake(20);}
+  if(this.lives<=0){this._gameOver(false);return;}
+  this._msg('💔 损失一条命 · 剩 '+this.lives,1400);
+};
+Shooter.prototype._pick=function(it){
+  CineAudio.coin();
+  if(it.type==='life'){this.lives=Math.min(9,this.lives+1);this._msg('🍗 +1 条命',800);}
+  else if(it.type==='spread'){this.spread=9;this._msg('💥 三向散弹 9s',800);}
+  else if(it.type==='shield'){this.shield=12;this._msg('🛡 护盾 12s',800);}
+  else if(it.type==='rapid'){this.rapid=9;this._msg('🔥 速射 9s',800);}
+  else if(it.type==='time'){this.timeLeft+=15;this._msg('⏱ +15 秒',800);}
+  else{var g=Math.round(80*(this.route==='gold'?1.3:1));this._addScore(g);this._msg('🪙 +'+g,700);}
+  this.energy=Math.min(100,this.energy+5);this._checkUlt();
+};
+Shooter.prototype._burst=function(x,y,col,n){
+  for(var i=0;i<(n||10);i++){var a=Math.random()*6.28,s=1.5+Math.random()*4;
+    this.parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.7+Math.random()*0.5,col:col,r:1.5+Math.random()*2.5});}
+};
+Shooter.prototype._bumpCombo=function(){this.combo++;if(this.combo>this.maxCombo)this.maxCombo=this.combo;};
+Shooter.prototype._addScore=function(d){this.score+=d;var e=$('ms');if(e)e.textContent=this.score;};
+Shooter.prototype._syncHud=function(){
+  var d=this.dom;
+  d.act.textContent='ACT '+this.act+' · '+ACTS[this.act-1].n;
+  d.hp.textContent=this.hp;d.lv.textContent=this.lives;
+  d.lifeBar.style.width=(this.hp/3*100)+'%';
+  d.en.textContent=Math.floor(this.energy);d.enBar.style.width=this.energy+'%';
+  d.kill.textContent=this.kills+'/'+(this.boss?'BOSS':this.waveTarget);
+  d.time.textContent=Math.max(0,Math.ceil(this.timeLeft));
+  d.wrap.classList.toggle('lowhp',this.lives<=2);
+};
+
+/* ---------- 8. 渲染（Canvas 矢量绘制，电影质感） ---------- */
+Shooter.prototype._draw=function(){
+  var ctx=this.ctx,W=this.W,H=this.H,a=ACTS[this.act-1];
+  ctx.save();
+  if(this.shakeT>0){ctx.translate((Math.random()-0.5)*this.shakeT,(Math.random()-0.5)*this.shakeT);}
+  // 天空渐变
+  var g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,a.sky[0]);g.addColorStop(0.55,a.sky[1]);g.addColorStop(1,a.sky[2]);
+  ctx.fillStyle=g;ctx.fillRect(-20,-20,W+40,H+40);
+  // 星/云/山（按幕次）
+  this._drawScene(ctx,a,W,H);
+  // 地面
+  ctx.fillStyle=a.ground;ctx.globalAlpha=0.5;
+  ctx.beginPath();ctx.moveTo(0,H-18);for(var x=0;x<=W;x+=20){ctx.lineTo(x,H-18-Math.sin(x*0.03+this.t*0)*6);}ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill();ctx.globalAlpha=1;
+  // 道具
+  var self=this;
+  this.items.forEach(function(it){self._drawItem(ctx,it);});
+  // 敌人
+  this.foes.forEach(function(f){self._drawFoe(ctx,f);});
+  // Boss
+  if(this.boss)this._drawBoss(ctx,this.boss);
+  // 子弹
+  this.bullets.forEach(function(b){ctx.fillStyle=b.c;ctx.shadowColor=b.c;ctx.shadowBlur=8;ctx.fillRect(b.x-1.5,b.y-6,3,12);ctx.shadowBlur=0;});
+  this.ebullets.forEach(function(b){ctx.fillStyle=b.c;ctx.shadowColor=b.c;ctx.shadowBlur=7;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,6.28);ctx.fill();ctx.shadowBlur=0;});
+  // 玩家
+  if(!this.ended&&this.invuln<=0||Math.floor(this.invuln*12)%2===0)this._drawPlayer(ctx);
+  // 粒子
+  this.parts.forEach(function(p){ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r||2.5,0,6.28);ctx.fill();});
+  ctx.globalAlpha=1;
+  // 飘字
+  this.texts.forEach(function(t){ctx.globalAlpha=Math.max(0,t.life);ctx.fillStyle=t.c||'#ffe08a';ctx.font='900 '+(t.s||13)+'px system-ui';ctx.textAlign='center';ctx.fillText(t.t,t.x,t.y);});
+  ctx.globalAlpha=1;
+  // 护盾光环
+  if(this.shield>0){ctx.strokeStyle='rgba(126,232,255,'+(0.4+Math.sin(this.t*8)*0.2)+')';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(this.player.x,this.player.y,this.player.r+9,0,6.28);ctx.stroke();}
+  ctx.restore();
+};
+Shooter.prototype._drawScene=function(ctx,a,W,H){
+  var t=performance.now()*0.001;
+  // 星幕（夜/雪幕）
+  if(this.act===7||this.act===4||this.act===8){
+    ctx.fillStyle='rgba(255,255,255,.7)';
+    for(var i=0;i<38;i++){var sx=(i*97.3)%W,sy=(i*53.7)%(H*0.7),tw=0.5+Math.sin(t*2+i)*0.4;
+      ctx.globalAlpha=Math.max(0.15,tw);ctx.fillRect(sx,sy,1.6,1.6);}
+    ctx.globalAlpha=1;
+  }
+  // 云层
+  if(this.act<=6||this.act===9){
+    ctx.fillStyle='rgba(255,255,255,.10)';
+    for(var c=0;c<5;c++){var cy=((t*12+c*120)%(H+120))-60,cx=(c*89)%W;
+      ctx.beginPath();ctx.ellipse(cx,cy,54,16,0,0,6.28);ctx.ellipse(cx+30,cy+6,40,12,0,0,6.28);ctx.fill();}
+  }
+  // 远山/梯田（山幕）
+  if(this.act===4||this.act===8||this.act===3){
+    ctx.fillStyle='rgba(0,0,0,.18)';
+    ctx.beginPath();ctx.moveTo(0,H*0.62);
+    for(var x=0;x<=W;x+=16){var peak=Math.sin(x*0.02+this.act)*26+Math.sin(x*0.05)*12;ctx.lineTo(x,H*0.62-peak);}
+    ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill();
+  }
+  // 稻浪/金秋纹理
+  if(this.act===5){ctx.strokeStyle='rgba(255,220,120,.14)';ctx.lineWidth=1;
+    for(var r=0;r<8;r++){ctx.beginPath();for(var xx=0;xx<=W;xx+=10){var yy=H*0.7+r*14+Math.sin(xx*0.05+t*2+r)*4;if(xx===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}ctx.stroke();}}
+};
+Shooter.prototype._drawPlayer=function(ctx){
+  var x=this.player.x,y=this.player.y,c=this.ctx;
+  ctx.save();ctx.translate(x,y);
+  ctx.shadowColor=this.t.a;ctx.shadowBlur=16;
+  if(this.isTank){
+    // 坦克：履带+炮塔+炮管
+    ctx.fillStyle='#2c3a2a';ctx.strokeStyle=this.t.a;ctx.lineWidth=2;
+    ctx.fillRect(-17,4,34,10);ctx.strokeRect(-17,4,34,10);
+    for(var i=-14;i<16;i+=7){ctx.fillStyle='#4a5a40';ctx.fillRect(i,5,5,8);}
+    ctx.fillStyle=this.t.b;ctx.beginPath();ctx.ellipse(0,0,13,10,0,0,6.28);ctx.fill();ctx.stroke();
+    ctx.fillStyle=this.t.a;ctx.fillRect(-2.5,-20,5,22);
+    ctx.fillStyle='#ffe08a';ctx.beginPath();ctx.arc(0,-1,4,0,6.28);ctx.fill();
+  }else{
+    // 战机：机身+机翼+座舱
+    ctx.fillStyle=this.t.b;ctx.strokeStyle=this.t.a;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(7,-4);ctx.lineTo(20,6);ctx.lineTo(20,11);ctx.lineTo(5,7);
+    ctx.lineTo(4,14);ctx.lineTo(-4,14);ctx.lineTo(-5,7);ctx.lineTo(-20,11);ctx.lineTo(-20,6);
+    ctx.lineTo(-7,-4);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle='#8fd8ff';ctx.beginPath();ctx.ellipse(0,-6,4,8,0,0,6.28);ctx.fill();
+    ctx.fillStyle='#ff9a6a';ctx.fillRect(-2,12,4,5);
+  }
+  ctx.shadowBlur=0;ctx.restore();
+};
+Shooter.prototype._drawFoe=function(ctx,f){
+  ctx.save();ctx.translate(f.x,f.y);ctx.rotate(Math.sin(f.t)*0.15);
+  ctx.fillStyle=f.col;ctx.shadowColor=f.col;ctx.shadowBlur=f.elite?14:6;ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1.5;
+  if(this.isTank){
+    ctx.fillRect(-13,-7,26,15);ctx.strokeRect(-13,-7,26,15);
+    ctx.fillRect(-3,-14,6,10);ctx.fillStyle='#2a2a2a';ctx.fillRect(-15,5,30,5);
+  }else{
+    ctx.beginPath();ctx.moveTo(0,13);ctx.lineTo(13,-6);ctx.lineTo(6,-4);ctx.lineTo(0,-12);ctx.lineTo(-6,-4);ctx.lineTo(-13,-6);ctx.closePath();ctx.fill();ctx.stroke();
+  }
+  if(f.elite){ctx.strokeStyle='#ffe08a';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,19,0,6.28);ctx.stroke();}
+  ctx.shadowBlur=0;ctx.restore();
+  if(f.hp>1&&f.hp<f.maxhp){ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(f.x-12,f.y-f.r-8,24,3);ctx.fillStyle=f.col;ctx.fillRect(f.x-12,f.y-f.r-8,24*(f.hp/f.maxhp),3);}
+};
+Shooter.prototype._drawBoss=function(ctx,b){
+  var ctx2=ctx;ctx2.save();ctx2.translate(b.x,b.y);
+  ctx2.shadowColor=b.col;ctx2.shadowBlur=22;
+  var stretch=b.phase>0?1+Math.sin(b.t*6)*0.08:1;
+  ctx2.scale(stretch,1);
+  ctx2.fillStyle=b.col;ctx2.strokeStyle='#2a1408';ctx2.lineWidth=3;
+  if(this.isTank){
+    // 要塞Boss
+    ctx2.fillRect(-b.w/2,-b.h/2,b.w,b.h);ctx2.strokeRect(-b.w/2,-b.h/2,b.w,b.h);
+    ctx2.fillStyle='#3a2a1a';ctx2.fillRect(-b.w/2-6,b.h/2-6,b.w+12,12);
+    ctx2.fillStyle=b.col;[-22,0,22].forEach(function(dx){ctx2.fillRect(dx-6,-b.h/2-16,12,18);});
+    ctx2.fillStyle='#ff5a4a';ctx2.beginPath();ctx2.arc(0,0,9,0,6.28);ctx2.fill();
+  }else{
+    // 巨舰Boss
+    ctx2.beginPath();ctx2.moveTo(-b.w/2,-6);ctx2.lineTo(b.w/2,-6);ctx2.lineTo(b.w/2-10,b.h/2);ctx2.lineTo(-b.w/2+10,b.h/2);ctx2.closePath();ctx2.fill();ctx2.stroke();
+    ctx2.fillStyle='#3a2a1a';ctx2.fillRect(-14,-b.h/2-8,28,16);
+    ctx2.fillStyle=b.col;ctx2.beginPath();ctx2.moveTo(0,-b.h/2-26);ctx2.lineTo(8,-b.h/2-8);ctx2.lineTo(-8,-b.h/2-8);ctx2.closePath();ctx2.fill();
+    ctx2.fillStyle='#ffe08a';[-20,0,20].forEach(function(dx){ctx2.beginPath();ctx2.arc(dx,2,3,0,6.28);ctx2.fill();});
+  }
+  ctx2.shadowBlur=0;ctx2.restore();
+  // 血条（带33%/66%刻度）
+  var bw=Math.min(this.W-40,180),bx=(this.W-bw)/2,by=16;
+  ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(bx-2,by-2,bw+4,10);
+  ctx.fillStyle='#ff5a4a';ctx.fillRect(bx,by,bw*Math.max(0,b.hp/b.maxhp),6);
+  ctx.fillStyle='rgba(255,255,255,.55)';[0.33,0.66].forEach(function(p){ctx.fillRect(bx+bw*p,by-2,1.5,10);});
+  ctx.fillStyle='#ffe08a';ctx.font='900 10px system-ui';ctx.textAlign='left';
+  ctx.fillText(ACTS[this.act-1].boss+' · P'+(b.phase+1),bx,by-5);
+};
+Shooter.prototype._drawItem=function(ctx,it){
+  var y=it.y+Math.sin(it.t)*2;ctx.save();ctx.translate(it.x,y);
+  ctx.shadowColor='#ffe08a';ctx.shadowBlur=10;ctx.font='900 17px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';
+  var em={life:'🍗',spread:'💥',shield:'🛡',rapid:'🔥',time:'⏱',coin:'🪙'}[it.type]||'★';
+  ctx.fillText(em,0,0);ctx.shadowBlur=0;ctx.restore();
+};
+
+/* ---------- 9. 关卡结算 / 通关 / 失败 ---------- */
+Shooter.prototype._levelClear=function(){
+  var self=this;
+  CineAudio.victory();this._msg('ACT '+this.act+' CLEAR！',1600);
+  var acc=this.shots?Math.round(this.hits/this.shots*100):0;
+  var grade=acc>=70?'S':(acc>=50?'A':(acc>=30?'B':'C'));
+  var bonus=Math.round(({S:600,A:400,B:250,C:120}[grade])*(this.route==='gold'?1.3:1));
+  this._addScore(bonus);
+  this.routeLog[this.act-1]=this.route;
+  try{localStorage.setItem('mx_shoot_routes',JSON.stringify(this.routeLog));}catch(e){}
+  if(this.act>=9){setTimeout(function(){self._gameOver(true);},1200);return;}
+  var cn=this.dom.cine;
+  cn.innerHTML='<div class="v174-titlecard">'+
+    '<div class="v174-kicker">END OF ACT '+this.act+'</div>'+
+    '<div class="v174-big" style="color:'+({S:'#ffe08a',A:'#a0e8ff',B:'#9fe870',C:'#e0c090'}[grade])+'">'+grade+'</div>'+
+    '<div class="v174-sub">'+ACTS[this.act-1].n+' · 击破 '+this.kills+' · 命中率 '+acc+'%</div>'+
+    '<div class="v174-actno">评级奖励 +'+bonus+' 分</div>'+
+    '<button class="v174-skip" id="vaNext">进入第 '+(this.act+1)+' 幕 · '+ACTS[this.act].n+' ▶</button>'+
+    '</div>';
+  cn.classList.add('show');
+  var nx=$('vaNext');if(nx)nx.onclick=function(){
+    cn.classList.remove('show');self.act++;self.wave=0;self.waveTarget=0;self.boss=null;
+    self.bullets=[];self.ebullets=[];self.foes=[];self.items=[];self.timeLeft=62;self.lives=Math.min(9,self.lives+1);
+    self._msg('ACT '+self.act+' · '+ACTS[self.act-1].n,1500);
+  };
+};
+Shooter.prototype._gameOver=function(win){
+  if(this.ended)return;this.ended=true;
+  CineAudio.stopAll();
+  if(win){CineAudio.victory();CineAudio.cheer();}else CineAudio.lose();
+  // 计分入账（走全局 MX_MINI → v173归属 + v163充能）
+  try{ if(this.score>0&&window.MX_MINI) window.MX_MINI.add(this.score); }catch(e){}
+  // 榜单记录
+  try{ if(window.MX_TRAD&&window.MX_TRAD.board){/*榜单入口在非show时提示，不强行打开*/} }catch(e){}
+  var best=parseInt(localStorage.getItem('fafu_best_'+this.mode)||'0',10)||0;
+  var rec=this.score>best;
+  if(rec){try{localStorage.setItem('fafu_best_'+this.mode,String(this.score));}catch(e){}}
+  // 应援→助威团升级
+  var newAl=Math.min(8,Math.floor(this.cheers/12));
+  if(newAl>this.alumni){this.alumni=newAl;try{localStorage.setItem('mx_shoot_alumni',String(newAl));}catch(e){};}
+  var self=this,cn=this.dom.cine;
+  var acc=this.shots?Math.round(this.hits/this.shots*100):0;
+  var grade=win?(acc>=70?'S':acc>=50?'A':'B'):(acc>=50?'B':'C');
+  var rollTxt='福建农林大学九十周年献映 · '+(this.isTank?'《明溪·护林战记》':'《明溪·飞天逐梦》')+'<br>'
+    +'导演：明溪一中 · 监制：杉杉 · 主演：'+(this.isTank?'护林战车':'逐梦战机')+'<br>'
+    +'第九幕 '+ACTS[this.act-1].n+' · 观众应援 '+this.cheers+' 次 · 校友团 '+ALUMNI[this.alumni]+'<br>'
+    +'THANK YOU FOR WATCHING · THE END';
+  cn.innerHTML='<div class="v174-result">'+
+    '<div class="rg">'+(win?'🏆':'🎬')+'</div>'+
+    '<div class="rt">'+(win?'九幕全通 · 史诗凯旋':'演出落幕 · 再战一场')+'</div>'+
+    '<div class="rd">本局得分 <b style="color:#ffe08a">'+this.score.toLocaleString()+'</b>'+(rec?' · 🎉新纪录':'')+'<br>'
+      +'击破 '+this.kills+' · 命中率 '+acc+'% · 最高连击 '+this.maxCombo+'<br>'
+      +'路线：'+((ROUTES.filter(function(r){return r.id===self.route;})[0]||ROUTES[0]).n)+' · 评级 '+grade+'</div>'+
+    '<div class="v174-roll">'+rollTxt+'</div>'+
+    '<div class="v174-result-btns"><button class="v174-rbtn" id="vaAgain">🔄 再来一局</button>'+
+    '<button class="v174-rbtn sec" id="vaLobby">返回大厅</button></div>'+
+    '</div>';
+  cn.classList.add('show');
+  var ag=$('vaAgain'),lb=$('vaLobby');
+  if(ag)ag.onclick=function(){try{window.MX_TRAD.play(self.mode);}catch(e){}};
+  if(lb)lb.onclick=function(){try{window.MX_TRAD.close();window.MX_TRAD.open();}catch(e){}};
+};
+/* ---------- 10. 面板：暂停 / 体验 / 片单 / 助威团 ---------- */
+Shooter.prototype._panelHTML=function(title,body){
+  this.dom.panel.innerHTML='<button class="v174-close" id="vaPClose">✕ 关闭</button><h3>'+title+'</h3>'+body;
+  this.dom.panel.classList.add('show');
+  var self=this,c=$('vaPClose');if(c)c.onclick=function(){self.closePanel();};
+  this.paused=true;
+};
+Shooter.prototype.closePanel=function(){this.dom.panel.classList.remove('show');this.paused=false;};
+Shooter.prototype.togglePause=function(){
+  if(this.ended||this.intro)return;
+  if(this.dom.panel.classList.contains('show')){this.closePanel();return;}
+  this._panelHTML('⏸ 演出暂停',
+    '<div class="v174-title-note">影院已暂停 · 幕间休息</div>'+
+    '<div class="v174-opt"><span>继续演出</span><button class="v174-toggle on" id="vaResume">▶ 继续</button></div>'+
+    '<div class="v174-opt"><span>返回游戏大厅</span><button class="v174-toggle" id="vaBackLobby">↩ 大厅</button></div>');
+  var self=this,r=$('vaResume'),bl=$('vaBackLobby');
+  if(r)r.onclick=function(){self.closePanel();};
+  if(bl)bl.onclick=function(){try{window.MX_TRAD.close();window.MX_TRAD.open();}catch(e){}};
+};
+Shooter.prototype.toggleSettings=function(){
+  var self=this,s=this.settings;
+  var opt=function(k,n){return '<div class="v174-opt"><span>'+n+'</span><button class="v174-toggle'+(s[k]?' on':'')+'" data-k="'+k+'">'+(s[k]?'开':'关')+'</button></div>';};
+  this._panelHTML('⚙ 影院体验设置',
+    opt('sfx','🎵 影院音响 / 背景音乐')+
+    opt('vibe','📳 震动反馈')+
+    opt('flash','✨ 闪光顿帧')+
+    opt('burn','🔥 百年·燃（加速蓄能）')+
+    opt('reduce','🎞 简约模式（降低动效）')+
+    '<div class="v174-opt"><span>🎨 银幕配色</span><button class="v174-toggle" id="vaTheme">'+THEMES[(parseInt(localStorage.getItem('mx_shoot_theme')||'0',10)||0)%3].n+'</button></div>');
+  this.dom.panel.querySelectorAll('.v174-toggle[data-k]').forEach(function(b){
+    b.onclick=function(){var k=b.getAttribute('data-k');s[k]=!s[k];b.classList.toggle('on',s[k]);b.textContent=s[k]?'开':'关';
+      if(k==='sfx'){CineAudio.setMuted(!s.sfx);CineAudio.setBgm(s.sfx);self.dom.mute.textContent=s.sfx?'🔊':'🔇';}
+      self._saveSet();};
+  });
+  var th=$('vaTheme');
+  if(th)th.onclick=function(){var i=((parseInt(localStorage.getItem('mx_shoot_theme')||'0',10)||0)+1)%3;
+    try{localStorage.setItem('mx_shoot_theme',String(i));}catch(e){}th.textContent=THEMES[i].n;
+    self.t=THEMES[i];self._msg('银幕配色：'+THEMES[i].n,700);};
+};
+Shooter.prototype.toggleProgram=function(){
+  var self=this;
+  this._panelHTML('🎬 九幕片单 · 点播重映',
+    '<div class="v174-title-note">选择路线可解锁分支剧情 · 点击幕次可重映</div>'+
+    '<div class="v174-prog-list">'+ACTS.map(function(a,i){
+      return '<div class="v174-prog-item'+((i+1)===self.act?' cur':'')+'" data-a="'+(i+1)+'"><span class="no">'+String(i+1).padStart(2,'0')+'</span><span>'+a.n+'</span><span style="margin-left:auto;color:#cbb785;font-size:9px">'+((i+1)%3===0?'⚔BOSS':'波次')+'</span></div>';
+    }).join('')+'</div>'+
+    '<div class="v174-title-note" style="margin-top:12px">当前路线</div>'+
+    '<div class="v174-routes">'+ROUTES.map(function(r){return '<div class="v174-route'+(self.route===r.id?' sel':'')+'" data-r="'+r.id+'">'+r.n+'<small>'+r.d+'</small></div>';}).join('')+'</div>');
+  this.dom.panel.querySelectorAll('.v174-prog-item').forEach(function(el){
+    el.onclick=function(){var a=parseInt(el.getAttribute('data-a'),10);
+      self.act=a;self.wave=0;self.waveTarget=0;self.boss=null;self.foes=[];self.bullets=[];self.ebullets=[];self.items=[];
+      self.timeLeft=62;self.closePanel();self._msg('重映第 '+a+' 幕 · '+ACTS[a-1].n,1400);CineAudio.coin();};
+  });
+  this.dom.panel.querySelectorAll('.v174-route').forEach(function(el){
+    el.onclick=function(){self.route=el.getAttribute('data-r');try{localStorage.setItem('mx_shoot_route',self.route);}catch(e){}
+      self.dom.panel.querySelectorAll('.v174-route').forEach(function(x){x.classList.toggle('sel',x===el);});CineAudio.coin();};
+  });
+};
+Shooter.prototype.showAlumni=function(){
+  var self=this;
+  this.routeLog=this.routeLog||[];
+  var script=ROUTES.filter(function(r){return r.id===(self.routeLog[8]||self.route);})[0];
+  this._panelHTML('🎓 校友助威团 · '+ALUMNI[this.alumni],
+    '<div class="v174-title-note">累计应援 '+this.cheers+' 次 · 等级越高，预亮灯带越多、大招蓄能越快</div>'+
+    '<div class="v174-badges">'+BADGES.map(function(b,i){return '<div class="v174-badge'+(i<=self.alumni?' got':'')+'" title="'+ALUMNI[i]+'">'+b+'</div>';}).join('')+'</div>'+
+    '<div class="v174-title-note" style="margin-top:14px">🧭 九幕路线轨迹：'+this.routeLog.map(function(r,i){return (i+1)+':'+(ROUTES.filter(function(x){return x.id===r;})[0]||{n:'—'}).n.charAt(0);}).join(' → ')+'</div>'+
+    '<div class="v174-title-note">片尾彩蛋：'+(this.alumni>=6?'已解锁隐藏结局 ✦':'继续应援解锁隐藏结局')+'</div>');
+};
+Shooter.prototype.destroy=function(){
+  try{var ft=document.getElementById('fafuTalkBubble');if(ft)ft.classList.remove('ftb-shoot');}catch(e){}
+  if(this.raf)cancelAnimationFrame(this.raf);
+  window.removeEventListener('keydown',this._keyDown);window.removeEventListener('keyup',this._keyUp);
+  clearTimeout(this._msgT);CineAudio.stopAll();
+};
+
+/* ---------- 11. 宿主接线：入口函数 + 全局钩子 ---------- */
+var active=null;
+function start(mode,stage,m){
+  if(active){try{active.destroy();}catch(e){}active=null;}
+  active=new Shooter(mode,stage,m);
+  window.__MX_SHOOT_ACTIVE=active;
+  return active;
+}
+window.FAFU_V36={togglePause:function(){if(active)active.togglePause();}};
+window.FAFU_V37={toggleSettings:function(){if(active)active.toggleSettings();}};
+window.FAFU_V38={toggleProgram:function(){if(active)active.toggleProgram();}};
+window.FAFU_V39={togglePanel:function(){if(active)active.showAlumni();},
+  toggleSettings:function(){if(active)active.toggleSettings();}};
+window.MX_SHOOT={start:start,CineAudio:CineAudio,ACTS:ACTS,THEMES:THEMES,ROUTES:ROUTES,
+  getActive:function(){return active;},
+  destroy:function(){if(active){try{active.destroy();}catch(e){}active=null;}}};
+
+/* ---------- 12. 注入游戏列表（plane 飞机大战 / tank 坦克大战） ---------- */
+(function(){
+  var g=window.MX_TRAD&&window.MX_TRAD.games;
+  if(!Array.isArray(g))return;
+  function has(id){return g.some(function(x){return x.id===id;});}
+  if(!has('plane')){
+    g.push({cat:'traditional',id:'plane',name:'飞机大战·百年献映',emo:'✈️',
+      tip:'九幕电影剧院巨作：驾驶战机逐梦明溪山水，自动开火、拖动走位、击落敌机蓄百年能量。三阶段Boss、观众应援、校友助威团、三色银幕，影院级音响灯光！',
+      play:function(stage,m){start('plane',stage,m);}});
+  }
+  if(!has('tank')){
+    g.push({cat:'traditional',id:'tank',name:'坦克大战·护林战记',emo:'🚜',
+      tip:'九幕电影剧院巨作：驾驶护林战车守卫明溪，自动开火、拖动走位、击毁装甲蓄百年能量。要塞三阶段Boss、交错弹幕、观众应援、校友助威团、三色银幕，影院级视听！',
+      play:function(stage,m){start('tank',stage,m);}});
+  }
+  /* 关闭游戏时清理引擎 */
+  var _c=window.MX_TRAD.close;
+  if(_c)window.MX_TRAD.close=function(){try{window.MX_SHOOT.destroy();}catch(e){}return _c.apply(this,arguments);};
+})();
+})();
+</script>
 </body>
 </html>
