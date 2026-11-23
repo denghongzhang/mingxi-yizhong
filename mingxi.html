@@ -14568,5 +14568,367 @@ window.MX_SHOOT={start:start,CineAudio:CineAudio,ACTS:ACTS,THEMES:THEMES,ROUTES:
 window.MX_VER='176';
 </script>
 
+
+<!-- ============ v177 · 杉杉基地 · 光影剧院 + 动漫3D + 物种诙谐对话 ============ -->
+<style>
+/* ========== A. 剧院光影升级（在 v162/v176 基础上叠加） ========== */
+#ovPet .pet-base.v177-stage{
+  border:1.6px solid rgba(255,214,120,.7);
+  box-shadow:0 10px 34px rgba(30,50,36,.5), 0 0 26px rgba(255,196,80,.28), inset 0 0 0 2px rgba(255,240,196,.4);
+  transform-style:preserve-3d;
+}
+/* 顶部双层聚光锥 */
+#ovPet .v177-stage .pb-scene::before{
+  background-image:
+    radial-gradient(ellipse at 22% -12%, rgba(255,246,200,.42), transparent 46%),
+    radial-gradient(ellipse at 78% -14%, rgba(255,232,168,.34), transparent 48%),
+    radial-gradient(2px 2px at 18% 32%, rgba(255,240,170,.95), transparent),
+    radial-gradient(1.6px 1.6px at 72% 22%, rgba(255,246,196,.9), transparent),
+    radial-gradient(2px 2px at 86% 64%, rgba(255,236,150,.95), transparent),
+    radial-gradient(1.5px 1.5px at 34% 76%, rgba(255,246,196,.85), transparent),
+    radial-gradient(2px 2px at 56% 48%, rgba(255,240,170,.85), transparent),
+    radial-gradient(1.6px 1.6px at 44% 14%, rgba(255,246,196,.8), transparent);
+  animation:mx177Motes 5.5s ease-in-out infinite alternate;
+}
+@keyframes mx177Motes{ 0%{ transform:translateY(0) scale(1); opacity:.6; } 100%{ transform:translateY(-12px) scale(1.06); opacity:1; } }
+/* 金色流光边框（沿 pet-base 一圈扫过） */
+#ovPet .v177-stage::after{
+  content:''; position:absolute; inset:0; border-radius:16px; z-index:6; pointer-events:none;
+  background:linear-gradient(115deg,transparent 40%,rgba(255,236,170,.0) 46%,rgba(255,230,150,.5) 50%,rgba(255,236,170,.0) 54%,transparent 60%);
+  background-size:280% 100%; mix-blend-mode:screen; animation:mx177Frame 6s linear infinite;
+}
+@keyframes mx177Frame{ 0%{ background-position:190% 0; } 100%{ background-position:-90% 0; } }
+/* 底部舞台光带 */
+#ovPet .v177-stage .pb-scene{ box-shadow:inset 0 -22px 30px rgba(8,20,12,.35); }
+
+/* ========== B. 动漫3D角色（悬浮在场景右侧，视差摇摆） ========== */
+.v177-chara{
+  position:absolute; right:8px; top:8px; z-index:3; width:78px; height:78px;
+  transform-style:preserve-3d; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  animation:mx177CharaFloat 3.4s ease-in-out infinite;
+  filter:drop-shadow(0 6px 8px rgba(0,0,0,.38));
+}
+@keyframes mx177CharaFloat{ 0%,100%{ transform:translateZ(0) rotateY(-6deg) translateY(0); } 50%{ transform:translateZ(16px) rotateY(8deg) translateY(-5px); } }
+.v177-chara:active{ transform:scale(.92); }
+.v177-chara svg{ width:100%; height:100%; display:block; }
+/* 角色名小牌 */
+.v177-chara .v177-cname{
+  position:absolute; left:50%; bottom:-2px; transform:translateX(-50%); z-index:2;
+  padding:1px 7px; border-radius:10px; font-size:9px; font-weight:900; white-space:nowrap;
+  color:#fff6dc; background:linear-gradient(135deg,rgba(150,110,40,.94),rgba(90,60,18,.92));
+  border:1px solid rgba(255,224,150,.7); text-shadow:0 1px 2px rgba(0,0,0,.5);
+}
+/* 点击提示光环 */
+.v177-chara::before{
+  content:''; position:absolute; inset:-8px; border-radius:50%; z-index:1;
+  border:2px solid rgba(255,220,120,.7); animation:mx177Halo 2.2s ease-out infinite; pointer-events:none;
+}
+@keyframes mx177Halo{ 0%{ transform:scale(.86); opacity:.85; } 100%{ transform:scale(1.22); opacity:0; } }
+/* 基地伙伴小精灵（2-3 个，环绕） */
+.v177-buddy{ position:absolute; z-index:3; font-size:20px; line-height:1; cursor:pointer;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.35)); -webkit-tap-highlight-color:transparent;
+  animation:mx177BuddyBob 3s ease-in-out infinite; }
+.v177-buddy:active{ transform:scale(.8); }
+@keyframes mx177BuddyBob{ 0%,100%{ transform:translateY(0) rotate(-6deg); } 50%{ transform:translateY(-7px) rotate(8deg); } }
+
+/* ========== C. 诙谐物种对话气泡 ========== */
+.v177-talk{
+  position:absolute; left:8px; right:8px; bottom:6px; z-index:5;
+  display:flex; align-items:flex-end; gap:6px; pointer-events:none;
+  opacity:0; transform:translateY(12px); transition:opacity .28s ease, transform .28s ease;
+}
+.v177-talk.show{ opacity:1; transform:none; }
+.v177-talk .v177-ava{
+  flex:0 0 42px; width:42px; height:42px; border-radius:50%; overflow:hidden;
+  background:radial-gradient(circle at 35% 30%,#fff6d8,#e7cf90); border:2px solid #ffe08a;
+  box-shadow:0 3px 8px rgba(0,0,0,.35); font-size:24px; display:flex; align-items:center; justify-content:center;
+  animation:mx177AvaPop .4s cubic-bezier(.2,.9,.3,1.3) both;
+}
+@keyframes mx177AvaPop{ from{ transform:scale(.4) rotate(-16deg); opacity:0; } to{ transform:none; opacity:1; } }
+.v177-talk .v177-bub{
+  position:relative; flex:1 1 auto; min-width:0; pointer-events:auto;
+  background:linear-gradient(155deg,#fffaf0,#f6e9c8); border:1.5px solid #d9b45e; border-radius:14px;
+  padding:8px 11px 9px; box-shadow:0 6px 18px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.8);
+  animation:mx177BubIn .35s cubic-bezier(.2,.9,.3,1.2) both;
+}
+@keyframes mx177BubIn{ from{ opacity:0; transform:translateY(10px) scale(.96); } to{ opacity:1; transform:none; } }
+.v177-talk .v177-bub::before{
+  content:''; position:absolute; left:-8px; bottom:12px; width:0; height:0;
+  border-top:7px solid transparent; border-bottom:7px solid transparent; border-right:9px solid #d9b45e;
+}
+.v177-talk .v177-bub .v177-who{ font-size:10px; font-weight:900; color:#b5341f; margin-bottom:2px; letter-spacing:.3px; }
+.v177-talk .v177-bub .v177-line{ font-size:12px; font-weight:700; color:#5e4a24; line-height:1.5; }
+.v177-talk.speaking .v177-ava{ animation:mx177AvaPop .4s cubic-bezier(.2,.9,.3,1.3) both, mx177TalkBob .5s ease-in-out infinite .4s; }
+@keyframes mx177TalkBob{ 0%,100%{ transform:rotate(-4deg); } 50%{ transform:rotate(5deg) translateY(-2px); } }
+/* 关闭 × */
+.v177-talk .v177-x{ position:absolute; top:-7px; right:-6px; width:20px; height:20px; border-radius:50%;
+  background:#9d2f1c; color:#fff; border:1.5px solid #fff; font-size:12px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; z-index:3; }
+
+/* ========== D. 音乐/旁白控制条 ========== */
+.v177-ctrls{ display:flex; gap:6px; justify-content:center; align-items:center; margin:6px 12px 2px; flex-wrap:wrap; }
+.v177-ctrls button{
+  border:1px solid rgba(214,168,74,.7); border-radius:18px; padding:5px 12px; font-size:11px; font-weight:800;
+  color:#7a5310; background:linear-gradient(180deg,#fff6dd,#f2dda4); cursor:pointer;
+  box-shadow:0 2px 5px rgba(120,80,20,.2); -webkit-tap-highlight-color:transparent;
+}
+.v177-ctrls button:active{ transform:translateY(2px); box-shadow:none; }
+.v177-ctrls button.on{ color:#fff; background:linear-gradient(180deg,#2a9b64,#166b42); border-color:#8fe0b0; }
+.v177-hint{ text-align:center; font-size:10px; color:#9a7e46; font-weight:700; margin:2px 10px 8px; }
+
+/* 减少动态效果 */
+@media (prefers-reduced-motion:reduce){
+  .v177-chara,.v177-chara::before,.v177-buddy,.v177-talk .v177-ava,.v177-talk .v177-bub,
+  #ovPet .v177-stage::after,#ovPet .v177-stage .pb-scene::before{ animation-duration:.001s!important; animation-iteration-count:1!important; }
+}
+</style>
+
+<script>
+/* ============ v177 · 杉杉基地剧场引擎 ============ */
+(function(){
+  if(window.__MX_V177) return; window.__MX_V177=true;
+
+  /* ---------- 1. 九级物种 · 动漫角色 SVG（Q版，随级数进化） ---------- */
+  function charaSVG(idx){
+    var faces=[
+      /* 0 红豆子：一颗会眨眼的大红豆 */
+      '<g><ellipse cx="50" cy="56" rx="30" ry="32" fill="#a5271f"/><ellipse cx="50" cy="52" rx="24" ry="25" fill="#d23b2a"/>'+
+      '<circle cx="41" cy="50" r="3.2" fill="#fff"/><circle cx="59" cy="50" r="3.2" fill="#fff"/><circle cx="42" cy="51" r="1.7" fill="#222"/><circle cx="60" cy="51" r="1.7" fill="#222"/>'+
+      '<path d="M44 62 Q50 67 56 62" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M50 24 Q47 16 53 14" stroke="#3e8b34" stroke-width="3" fill="none"/></g>',
+      /* 1 破土芽：豆芽小人 */
+      '<g><ellipse cx="50" cy="58" rx="22" ry="20" fill="#f4e2b8"/><ellipse cx="50" cy="40" rx="16" ry="15" fill="#bfe07a"/>'+
+      '<path d="M50 30 Q40 14 30 22 Q44 22 50 34" fill="#5fae43"/><path d="M50 30 Q60 12 72 20 Q58 22 50 34" fill="#79c654"/>'+
+      '<circle cx="44" cy="40" r="2.6" fill="#333"/><circle cx="56" cy="40" r="2.6" fill="#333"/><path d="M46 47 Q50 51 54 47" stroke="#b56" stroke-width="2" fill="none" stroke-linecap="round"/>'+
+      '<circle cx="38" cy="46" r="3" fill="#f9b" opacity=".6"/><circle cx="62" cy="46" r="3" fill="#f9b" opacity=".6"/></g>',
+      /* 2 青杉苗 */
+      '<g><path d="M50 82 L50 44" stroke="#6b4a22" stroke-width="7" stroke-linecap="round"/><path d="M50 52 L30 34 L50 40 L70 32 Z" fill="#2f8b46"/><path d="M50 40 L34 22 L50 30 L66 20 Z" fill="#43a75a"/>'+
+      '<circle cx="43" cy="60" r="2.6" fill="#222"/><circle cx="57" cy="60" r="2.6" fill="#222"/><path d="M45 67 Q50 72 55 67" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></g>',
+      /* 3 翠杉童：化形孩童 */
+      '<g><ellipse cx="50" cy="62" rx="20" ry="22" fill="#ffe0bd"/><path d="M30 44 Q34 18 50 22 Q66 18 70 44 Q60 34 50 36 Q40 34 30 44Z" fill="#2f8b46"/>'+
+      '<circle cx="43" cy="58" r="3" fill="#222"/><circle cx="57" cy="58" r="3" fill="#222"/><circle cx="42" cy="57" r="1" fill="#fff"/><circle cx="56" cy="57" r="1" fill="#fff"/>'+
+      '<path d="M44 68 Q50 74 56 68" stroke="#c55" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="37" cy="65" r="3.5" fill="#f9b" opacity=".55"/><circle cx="63" cy="65" r="3.5" fill="#f9b" opacity=".55"/></g>',
+      /* 4 苏区杉：戴红星 */
+      '<g><ellipse cx="50" cy="62" rx="20" ry="22" fill="#ffe0bd"/><path d="M30 44 Q34 18 50 22 Q66 18 70 44 Q60 34 50 36 Q40 34 30 44Z" fill="#2f8b46"/>'+
+      '<path d="M50 12 l4 8 9 1 -7 6 2 9 -8-5 -8 5 2-9 -7-6 9-1Z" fill="#e33b2e"/>'+
+      '<circle cx="43" cy="58" r="3" fill="#222"/><circle cx="57" cy="58" r="3" fill="#222"/><path d="M44 68 Q50 73 56 68" stroke="#c55" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>',
+      /* 5 金线杉 */
+      '<g><ellipse cx="50" cy="62" rx="20" ry="22" fill="#ffe0bd"/><path d="M30 44 Q34 18 50 22 Q66 18 70 44 Q60 34 50 36 Q40 34 30 44Z" fill="#2f8b46"/>'+
+      '<path d="M34 30 Q50 40 66 30 M32 40 Q50 50 68 40" stroke="#ffd34d" stroke-width="2" fill="none"/>'+
+      '<circle cx="43" cy="58" r="3" fill="#222"/><circle cx="57" cy="58" r="3" fill="#222"/><path d="M44 68 Q50 73 56 68" stroke="#c55" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>',
+      /* 6 归化杉：书生 */
+      '<g><ellipse cx="50" cy="62" rx="20" ry="22" fill="#ffe0bd"/><rect x="36" y="18" width="28" height="12" rx="3" fill="#2b2b2b"/><path d="M30 44 Q34 26 50 30 Q66 26 70 44Z" fill="#2f8b46"/>'+
+      '<circle cx="43" cy="58" r="3" fill="#222"/><circle cx="57" cy="58" r="3" fill="#222"/><path d="M45 69 Q50 72 55 69" stroke="#c55" stroke-width="2" fill="none"/><rect x="60" y="66" width="12" height="15" rx="1" fill="#f4e2b8" stroke="#a5271f" stroke-width="1.5"/></g>',
+      /* 7 红豆仙 */
+      '<g><ellipse cx="50" cy="62" rx="19" ry="21" fill="#fff0d6"/><path d="M30 44 Q34 20 50 24 Q66 20 70 44Z" fill="#3aa85c"/>'+
+      '<circle cx="43" cy="58" r="3" fill="#222"/><circle cx="57" cy="58" r="3" fill="#222"/><path d="M45 68 Q50 73 55 68" stroke="#c55" stroke-width="2" fill="none"/>'+
+      '<circle cx="30" cy="34" r="3.5" fill="#d23b2a"/><circle cx="70" cy="36" r="3.5" fill="#d23b2a"/><circle cx="62" cy="22" r="3" fill="#d23b2a"/><path d="M22 54 Q14 46 26 42 M78 54 Q86 46 74 42" stroke="#fff" stroke-width="2" fill="none" opacity=".8"/></g>',
+      /* 8 明溪杉王：加冕 */
+      '<g><ellipse cx="50" cy="62" rx="21" ry="23" fill="#ffe0bd"/><path d="M28 44 Q32 18 50 22 Q68 18 72 44Z" fill="#1e7a3c"/>'+
+      '<path d="M36 18 l5 -9 9 7 9 -7 5 9Z" fill="#ffd34d" stroke="#e0a800" stroke-width="1"/><circle cx="50" cy="14" r="3" fill="#fff3b0"/>'+
+      '<circle cx="43" cy="58" r="3.2" fill="#222"/><circle cx="57" cy="58" r="3.2" fill="#222"/><circle cx="42" cy="57" r="1.1" fill="#fff"/><circle cx="56" cy="57" r="1.1" fill="#fff"/>'+
+      '<path d="M44 69 Q50 75 56 69" stroke="#c55" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="36" cy="66" r="4" fill="#f9b" opacity=".6"/><circle cx="64" cy="66" r="4" fill="#f9b" opacity=".6"/></g>'
+    ];
+    return '<svg viewBox="0 0 100 92" xmlns="http://www.w3.org/2000/svg">'+(faces[idx]||faces[0])+'</svg>';
+  }
+
+  /* ---------- 2. 九级物种 · 诙谐幽默对白 + 基地伙伴 ---------- */
+  var TALK={
+    0:{who:'红豆子', lines:[
+      '我还没发芽呢，急啥？先让我睡个"红豆觉"～💤',
+      '别盯着我看，我会脸红的……其实我是熟透了才红，不是害羞！',
+      '人家可是明溪特产，身价倍儿棒——虽然现在还是颗豆。']},
+    1:{who:'破土芽', lines:[
+      '哎哟我去，外面的世界好亮！我的"墨镜"呢？🕶️',
+      '头顶这颗露珠是我今早的"钻石"，抵押给你看三天啊。',
+      '我长得快，长得快……你多攒点积分，我好早点"长个儿"！']},
+    2:{who:'青杉苗', lines:[
+      '君子峰的云海我天天看，比你们城里人刷的朋友圈还仙。☁️',
+      '别老摸我叶子，我痒痒的——虽然我没长手挠。',
+      '我这一身翠绿，纯天然无染色，假一赔十棵！']},
+    3:{who:'翠杉童', lines:[
+      '叫我杉杉童子就好，别叫"小朋友"，我辈分比校史还老！😤',
+      '明溪的故事我肚子里一箩筐，讲三天三夜不带重样的。',
+      '你消你的配对，我讲我的山——咱俩互不耽误，挺好。']},
+    4:{who:'苏区杉', lines:[
+      '我这颗红星，那可是"老资格"了，别拿现在的贴纸跟我比。🚩',
+      '当年苏区的新闻，我枝头一站就是几十年——站岗我是专业的。',
+      '红色传承懂不懂？我这是"根正苗红"，字面意思。']},
+    5:{who:'金线杉', lines:[
+      '看我这身金线，金线莲本莲都没我闪——低调，低调。✨',
+      '我值钱着呢，但我不摆摊，我只负责美。',
+      '药谷里谁不认识我？我可是"行走的贵人"。']},
+    6:{who:'归化杉', lines:[
+      '归化古邑讲究个"雅"字，你说话能不能也文绉绉点？📜',
+      '我这一身书卷气，都是千年书院熏出来的，没法洗。',
+      '别急，读书人嘛，慢工出细活——升级也一样。']},
+    7:{who:'红豆仙', lines:[
+      '我撒一把红豆，那叫"下相思雨"，浪漫吧？🌸',
+      '飘飘若仙是专业，落地沾泥是生活——我都懂。',
+      '想我啦？攒积分把我请回去，我给你跳一段。']},
+    8:{who:'明溪杉王', lines:[
+      '小的们，都让让——杉王驾到！这排面，得配得上。👑',
+      '我站这儿，就是明溪的"生态名片"，拍照记得缴费……开玩笑的！',
+      '满级啥感觉？就是风都听我的，鸟都给我让路。爽！']}
+  };
+  /* 基地伙伴：环绕小精灵，各有身份与台词 */
+  var BUDDIES=[
+    {emo:'💧', name:'露珠精灵', lines:['我是负责给杉杉"补水"的，顺便偷喝一口～','别晃，我这一身水晃出去就亏了！']},
+    {emo:'🐦', name:'候鸟阿哥', lines:['我年年飞来明溪打卡，比你勤快多了。','君子峰的虫子，那是真的香，懂的都懂。']},
+    {emo:'🌾', name:'金线莲妹妹', lines:['我俩是你中有我、我中有你——共生，懂吧？','身价高不代表高冷，我人可好了。']}
+  ];
+
+  /* ---------- 3. 基地专属音乐引擎（复用 CineAudio 的 AudioContext 思路） ---------- */
+  var BaseAudio=(function(){
+    var ctx=null, master=null, timer=null, on=false, step=0;
+    function ensure(){
+      if(ctx){ if(ctx.state==='suspended') try{ctx.resume();}catch(e){} return ctx; }
+      try{ var C=window.AudioContext||window.webkitAudioContext; ctx=new C();
+        master=ctx.createGain(); master.gain.value=0.5; master.connect(ctx.destination); }catch(e){ ctx=null; }
+      return ctx;
+    }
+    function note(freq,dur,type,vol,when){
+      var c=ensure(); if(!c||!on) return;
+      var t=c.currentTime+(when||0), o=c.createOscillator(), g=c.createGain();
+      o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.16,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+0.03);
+    }
+    /* 五声音阶 · 中国风剧场氛围 */
+    var SCALE=[261.63,293.66,329.63,392.00,440.00,523.25,587.33,659.25];
+    function tick(){
+      if(!on) return;
+      var f=SCALE[step%SCALE.length];
+      note(f,0.5,'sine',0.13);
+      if(step%4===0) note(f/2,0.9,'triangle',0.10);
+      if(step%2===1) note(f*2,0.22,'triangle',0.05);
+      if(step%8===6) note(SCALE[(step+2)%SCALE.length],0.35,'sine',0.08,0.25);
+      step++;
+    }
+    return {
+      unlock:function(){ ensure(); },
+      start:function(){ if(on) return; on=true; ensure(); step=0; tick(); timer=setInterval(tick,620); },
+      stop:function(){ on=false; if(timer){clearInterval(timer);timer=null;} },
+      toggle:function(){ if(on) this.stop(); else this.start(); return on; },
+      isOn:function(){ return on; },
+      chime:function(){ /* 对话出场音 */
+        [659.25,783.99,1046.5].forEach(function(f,i){ note(f,0.3,'sine',0.16,i*0.07); }); },
+      page:function(){ note(880,0.15,'triangle',0.12); },
+      fanfare:function(){ /* 满级/进化欢呼 */
+        try{ if(window.CineAudio) CineAudio.victory(); }catch(e){}
+      }
+    };
+  })();
+
+  /* ---------- 4. 注入与交互 ---------- */
+  var _talkTimer=null;
+  function say(text, who, avaEl, talkEl){
+    if(!talkEl) return;
+    var line=talkEl.querySelector('.v177-line'), w=talkEl.querySelector('.v177-who');
+    if(w) w.textContent=who+'：';
+    if(line) line.textContent=text;
+    talkEl.classList.add('show','speaking');
+    try{ BaseAudio.chime(); }catch(e){}
+    try{ if(typeof window.speakTTS==='function') window.speakTTS(text,'female'); }catch(e){}
+    clearTimeout(_talkTimer);
+    _talkTimer=setTimeout(function(){ talkEl.classList.remove('speaking'); },2600);
+  }
+  function closeTalk(talkEl){ if(talkEl) talkEl.classList.remove('show','speaking');
+    try{ if(typeof window.speakTTS==='function') window.speakTTS(''); }catch(e){} }
+
+  function decorate(){
+    var base=document.querySelector('#ovPet .pet-base');
+    if(!base || base.dataset.v177) return;
+    var idx=0;
+    var m=(base.className||'').match(/lv(\d)/); if(m) idx=Math.max(0,Math.min(8,(+m[1])-1));
+    base.dataset.v177='1';
+    base.classList.add('v177-stage');
+
+    var scene=base.querySelector('.pb-scene');
+    if(!scene) return;
+    /* 动漫3D角色 */
+    var chara=document.createElement('div'); chara.className='v177-chara';
+    chara.innerHTML=charaSVG(idx)+'<span class="v177-cname">'+(TALK[idx]?TALK[idx].who:'杉杉')+'</span>';
+    scene.appendChild(chara);
+    /* 伙伴精灵 */
+    BUDDIES.forEach(function(b,i){
+      var d=document.createElement('div'); d.className='v177-buddy'; d.textContent=b.emo;
+      d.style.left=(10+i*13)+'%'; d.style.top=(44+(i%2)*16)+'%';
+      d.style.animationDelay=(i*0.6)+'s'; d.title=b.name;
+      d._talk=b; scene.appendChild(d);
+    });
+    /* 对话气泡 */
+    var talk=document.createElement('div'); talk.className='v177-talk';
+    talk.innerHTML='<div class="v177-ava"></div><div class="v177-bub"><div class="v177-who"></div><div class="v177-line"></div><div class="v177-x">×</div></div>';
+    scene.appendChild(talk);
+    var ava=talk.querySelector('.v177-ava');
+
+    /* 角色点击：轮播本级台词 */
+    var lineIdx=0;
+    function nextLine(){
+      var arr=(TALK[idx]&&TALK[idx].lines)||['杉杉在这里等你～'];
+      var t=arr[lineIdx%arr.length]; lineIdx++;
+      ava.innerHTML=charaSVG(idx);
+      say(t, TALK[idx]?TALK[idx].who:'杉杉', ava, talk);
+    }
+    chara.addEventListener('click',function(e){ e.stopPropagation(); nextLine(); });
+    /* 伙伴点击 */
+    Array.prototype.forEach.call(scene.querySelectorAll('.v177-buddy'),function(d){
+      d.addEventListener('click',function(e){ e.stopPropagation();
+        var b=d._talk, t=b.lines[Math.floor(Math.random()*b.lines.length)];
+        ava.textContent=b.emo; say(t,b.name,ava,talk); });
+    });
+    /* 关闭 */
+    var x=talk.querySelector('.v177-x'); if(x) x.addEventListener('click',function(e){ e.stopPropagation(); closeTalk(talk); });
+    /* 点场景空白处收起 */
+    scene.addEventListener('click',function(e){ if(talk.classList.contains('show')) closeTalk(talk); });
+
+    /* 音乐/旁白控制条（插到 pet-base 之后） */
+    if(!document.getElementById('v177Ctrls')){
+      var ctrls=document.createElement('div'); ctrls.className='v177-ctrls'; ctrls.id='v177Ctrls';
+      ctrls.innerHTML='<button id="v177Bgm">🎵 剧场音乐</button>'
+        +'<button id="v177TalkBtn">💬 和杉杉聊聊</button>'
+        +'<button id="v177Fanfare">🎺 进化号角</button>';
+      base.parentNode.insertBefore(ctrls, base.nextSibling);
+      var hint=document.createElement('div'); hint.className='v177-hint';
+      hint.innerHTML='点击场景里的 <b>杉杉 · 露珠 · 候鸟 · 金线莲</b> 与他／她对话～';
+      ctrls.parentNode.insertBefore(hint, ctrls.nextSibling);
+
+      var bgm=document.getElementById('v177Bgm');
+      bgm.addEventListener('click',function(){ BaseAudio.unlock(); var on=BaseAudio.toggle();
+        bgm.classList.toggle('on',on); bgm.textContent=on?'🎵 音乐播放中':'🎵 剧场音乐'; });
+      document.getElementById('v177TalkBtn').addEventListener('click',function(e){ e.stopPropagation(); nextLine(); });
+      document.getElementById('v177Fanfare').addEventListener('click',function(){ BaseAudio.unlock(); BaseAudio.fanfare(); });
+    }
+
+    /* 3D 视差：触摸/鼠标移动轻微倾斜场景 */
+    var scene2=scene;
+    function tilt(dx,dy){
+      scene2.style.transform='perspective(900px) rotateX('+(-dy*4).toFixed(1)+'deg) rotateY('+(dx*5).toFixed(1)+'deg)';
+    }
+    scene2.addEventListener('mousemove',function(e){ var r=scene2.getBoundingClientRect();
+      tilt((e.clientX-r.left)/r.width-0.5,(e.clientY-r.top)/r.height-0.5); });
+    scene2.addEventListener('mouseleave',function(){ scene2.style.transform=''; });
+    scene2.addEventListener('touchmove',function(e){ if(!e.touches[0]) return; var r=scene2.getBoundingClientRect(),t=e.touches[0];
+      tilt((t.clientX-r.left)/r.width-0.5,(t.clientY-r.top)/r.height-0.5); },{passive:true});
+    scene2.addEventListener('touchend',function(){ setTimeout(function(){scene2.style.transform='';},400); });
+
+    /* 首次进入自动欢迎（轻提示，不打断） */
+    setTimeout(function(){ if(!base.dataset.v177Wel){ base.dataset.v177Wel='1'; nextLine(); } },700);
+  }
+
+  /* 用统一轮询装饰（petRender 之后 DOM 稳定） */
+  function tick(){ try{
+    var ov=document.getElementById('ovPet');
+    if(ov && ov.classList.contains('show')) decorate();
+  }catch(e){} }
+  if(window.__MX_POLL) window.__MX_POLL.add(tick); else setInterval(tick,500);
+  window.addEventListener('load',function(){ setTimeout(tick,600); });
+
+  /* 暴露接口 */
+  window.MX_BASE_THEATER={ audio:BaseAudio, charaSVG:charaSVG, decorate:decorate };
+})();
+</script>
+
 </body>
 </html>
