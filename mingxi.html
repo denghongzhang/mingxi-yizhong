@@ -14459,5 +14459,114 @@ window.MX_SHOOT={start:start,CineAudio:CineAudio,ACTS:ACTS,THEMES:THEMES,ROUTES:
 })();
 })();
 </script>
+<!-- ============ v176 · ①手柄上沿对齐杉杉等级 ②福/杉杉/手柄 宝藏流光 ③杉杉基地 3D 剧场 ============ -->
+<style>
+/* ===== ② 宝藏闪光：福印章 / 杉杉形象 / 金色手柄 ===== */
+#btnFudi{ position:relative; -webkit-tap-highlight-color:transparent;
+  animation:mx176SealGlow 2.4s ease-in-out infinite; }
+@keyframes mx176SealGlow{
+  0%,100%{ box-shadow:0 2px 6px rgba(90,20,12,.35), inset 0 1px 0 rgba(255,225,180,.55),
+            0 0 4px rgba(255,206,92,.45), 0 0 8px rgba(255,190,50,.2); }
+  50%    { box-shadow:0 2px 7px rgba(90,20,12,.38), inset 0 1px 0 rgba(255,235,195,.8),
+            0 0 11px rgba(255,214,104,1), 0 0 20px rgba(255,182,46,.75); }
+}
+#mxGzPet, #mxGzMiniPad{ position:relative; }
+#mxGzPet svg, #mxGzMiniPad svg{ animation:mx176TreasureGlow 2.4s ease-in-out infinite; }
+@keyframes mx176TreasureGlow{
+  0%,100%{ filter:drop-shadow(0 0 2px rgba(255,214,102,.55)) drop-shadow(0 0 5px rgba(255,196,60,.3)); }
+  50%    { filter:drop-shadow(0 0 5px rgba(255,236,160,1)) drop-shadow(0 0 12px rgba(255,188,48,.8)); }
+}
+/* 闪烁星光 ✦（宝藏提示） */
+#btnFudi::after, #mxGzPet::after, #mxGzMiniPad::after{
+  content:'✦'; position:absolute; top:-5px; right:-6px; z-index:7; pointer-events:none;
+  font-size:14px; line-height:1; color:#fff6bd;
+  text-shadow:0 0 5px #ffd24d, 0 0 11px #ffb62e, 0 1px 1px rgba(120,60,0,.6);
+  animation:mx176Sparkle 1.7s ease-in-out infinite;
+}
+@keyframes mx176Sparkle{
+  0%,100%{ transform:scale(.45) rotate(0deg);  opacity:.25; }
+  50%    { transform:scale(1.18) rotate(28deg); opacity:1; }
+}
+#mxGzPet::after, #mxGzMiniPad::after{ animation-delay:.65s; }
+
+/* ===== ③ 杉杉基地 · 动画 3D 剧场 ===== */
+#ovPet .pet-base{ position:relative; }
+/* 舞台顶部聚光 */
+#ovPet .pet-base::before{
+  content:''; position:absolute; top:-6%; left:50%; width:150%; height:62%;
+  transform:translateX(-50%); z-index:1; pointer-events:none;
+  background:radial-gradient(ellipse at 50% -18%, rgba(255,242,186,.30), rgba(255,225,150,.08) 45%, transparent 72%);
+  animation:mx176StageGlow 4.2s ease-in-out infinite alternate;
+}
+@keyframes mx176StageGlow{ 0%{ opacity:.5; transform:translateX(-50%) scale(1); } 100%{ opacity:1; transform:translateX(-50%) scale(1.08); } }
+/* 场景 3D 视差 + 缓慢摇摆 */
+#ovPet .pet-base .pb-scene{ perspective:900px; transform-style:preserve-3d; }
+#ovPet .pet-base .pb-scene img{
+  animation:mx176Base3D 11s ease-in-out infinite alternate;
+  transform-origin:50% 50%; will-change:transform;
+}
+@keyframes mx176Base3D{
+  0%  { transform:scale(1.06) rotateX(2.2deg) rotateY(-3deg) translateZ(0); }
+  50% { transform:scale(1.12) rotateX(-1deg)  rotateY(2deg)  translateZ(12px); }
+  100%{ transform:scale(1.06) rotateX(2deg)   rotateY(3deg)  translateZ(0); }
+}
+/* 漂浮星尘 */
+#ovPet .pet-base .pb-scene::before{
+  content:''; position:absolute; inset:0; z-index:1; pointer-events:none;
+  background-image:
+    radial-gradient(2px 2px at 18% 32%, rgba(255,240,170,.9), transparent),
+    radial-gradient(1.6px 1.6px at 72% 22%, rgba(255,246,196,.85), transparent),
+    radial-gradient(2px 2px at 86% 64%, rgba(255,236,150,.9), transparent),
+    radial-gradient(1.5px 1.5px at 34% 76%, rgba(255,246,196,.8), transparent),
+    radial-gradient(2px 2px at 56% 48%, rgba(255,240,170,.8), transparent),
+    radial-gradient(1.6px 1.6px at 44% 14%, rgba(255,246,196,.75), transparent);
+  animation:mx176Motes 6s ease-in-out infinite alternate;
+}
+@keyframes mx176Motes{ 0%{ transform:translateY(0) scale(1); opacity:.5; } 100%{ transform:translateY(-10px) scale(1.05); opacity:1; } }
+/* 聚光扫光 */
+#ovPet .pet-base .pb-scene::after{
+  content:''; position:absolute; inset:0; z-index:1; pointer-events:none; mix-blend-mode:screen;
+  background:linear-gradient(105deg, transparent 32%, rgba(255,255,240,.02) 43%,
+    rgba(255,246,204,.20) 50%, rgba(255,255,240,.02) 57%, transparent 70%);
+  background-size:260% 100%; animation:mx176Spotlight 5.6s linear infinite;
+}
+@keyframes mx176Spotlight{ 0%{ background-position:185% 0; } 100%{ background-position:-85% 0; } }
+/* 剧情字幕依次入场 */
+#ovPet .pet-base .pb-badge{ animation:mx176CaptionIn .55s cubic-bezier(.2,.8,.3,1) .18s both; }
+#ovPet .pet-base .pb-lv{ animation:mx176CaptionIn .55s cubic-bezier(.2,.8,.3,1) .32s both; }
+@keyframes mx176CaptionIn{ from{ opacity:0; transform:translateY(9px); } to{ opacity:1; transform:none; } }
+/* 减少动态效果 */
+@media (prefers-reduced-motion:reduce){
+  #btnFudi,#mxGzPet svg,#mxGzMiniPad svg,#btnFudi::after,#mxGzPet::after,#mxGzMiniPad::after,
+  #ovPet .pet-base::before,#ovPet .pet-base .pb-scene img,
+  #ovPet .pet-base .pb-scene::before,#ovPet .pet-base .pb-scene::after,
+  #ovPet .pet-base .pb-badge,#ovPet .pet-base .pb-lv{ animation-duration:.001s!important; animation-iteration-count:1!important; }
+}
+</style>
+<script>
+/* ① 手柄上沿精确对齐「杉杉等级」文字上沿（在 v171 定位之后覆盖；最后加入轮询，故每轮最后执行） */
+(function(){
+  if(window.__MX_V176_PAD) return; window.__MX_V176_PAD=true;
+  function align(){
+    var pad=document.getElementById('mxGzMiniPad');
+    var lv=document.getElementById('mxGzPetLv');   /* .mx-gz-pet-lv，首行即 ::before「杉杉等级」 */
+    if(!pad||!lv) return;
+    var host=pad.offsetParent||document.querySelector('.mx-gz-main');
+    if(!host) return;
+    var hr=host.getBoundingClientRect();
+    var target=lv.getBoundingClientRect().top-hr.top-1;   /* 手柄上边 ≈ 文字上边 */
+    if(!isFinite(target)) return;
+    var cur=parseFloat(pad.style.top);
+    if(!isFinite(cur)||Math.abs(cur-target)>0.5){
+      pad.style.setProperty('top', target.toFixed(1)+'px','important');
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',align); else align();
+  window.addEventListener('load',align);
+  if(window.__MX_POLL) window.__MX_POLL.add(align);
+})();
+window.MX_VER='176';
+</script>
+
 </body>
 </html>
