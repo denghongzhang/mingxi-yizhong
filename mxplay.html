@@ -13492,6 +13492,8 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
   function injectScores(){
     var grid=document.getElementById('gameGrid'); if(!grid) return;
     var by=getBy(), cards=grid.querySelectorAll('.game-card');
+    /* v182：累计获得=各游戏角标之和（只增不减，含飞机大战等射击游戏） */
+    var totalBy=0; for(var bk in by){ if(Object.prototype.hasOwnProperty.call(by,bk)) totalBy+=(parseInt(by[bk],10)||0); }
     for(var i=0;i<cards.length;i++){
       var c=cards[i], k=c.getAttribute('data-k'), tid=c.getAttribute('data-tid');
       var key=k?('h:'+k):(tid?('t:'+tid):''), sc=key?(by[key]||0):0;
@@ -13503,7 +13505,9 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
     if(sub){
       var bar=document.getElementById('mxMiniTotalBar');
       if(!bar){ bar=document.createElement('div'); bar.id='mxMiniTotalBar'; sub.parentNode.insertBefore(bar,sub.nextSibling); }
-      var bhtml='🎮 所有小游戏累计积分 <b>'+fmt(window.MX_MINI?window.MX_MINI.get():0)+'</b> · 每款得分见卡片角标';
+      var usable=window.MX_MINI?window.MX_MINI.get():0;
+      var bhtml='🎮 累计获得 <b>'+fmt(totalBy)+'</b> · 可用积分 <b>'+fmt(usable)+'</b> · 每款得分见卡片角标';
+      bar.title='累计获得＝各小游戏历史得分之和（只增不减，含飞机大战等）；可用积分＝当前可充能余额，充能后会减少';
       if(bar.innerHTML!==bhtml) bar.innerHTML=bhtml;
     }
   }
@@ -15420,6 +15424,166 @@ window.MX_VER='176';
   }
   if(window.__MX_POLL) window.__MX_POLL.add(bind); else setInterval(bind,500);
   window.addEventListener('load',function(){ setTimeout(bind,600); });
+})();
+</script>
+
+<!-- ============ v181 · 传统游戏积分充能 · 电影剧院质感仪式卡 ============ -->
+<style>
+/* ---------- ① 充能选择弹窗：电影质感升级（沿用 v163 结构，仅美化） ---------- */
+#mxChargeTiersV163{ background:radial-gradient(ellipse at 50% 40%,rgba(28,40,30,.72),rgba(4,8,6,.95))!important; }
+#mxChargeTiersV163::before{ content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:conic-gradient(from 176deg at 50% -8%,transparent 0deg,rgba(255,230,160,.13) 12deg,transparent 24deg,
+  transparent 336deg,rgba(255,230,160,.13) 348deg,transparent 360deg); }
+#mxChargeTiersV163 .mct-box{
+  position:relative; z-index:2; color:#5b3f16;
+  background:radial-gradient(circle at 50% 14%,#fffdf3 0%,#f7e9c9 62%,#e6cd98 100%)!important;
+  border:2.5px solid #e0b455!important; border-radius:20px!important;
+  box-shadow:0 22px 60px rgba(0,0,0,.6),0 0 44px rgba(255,208,104,.5),inset 0 0 0 3px rgba(255,255,255,.55)!important;
+  animation:mx181CardIn .6s cubic-bezier(.2,1.25,.4,1) both!important; overflow:hidden;
+}
+@keyframes mx181CardIn{ 0%{opacity:0;transform:perspective(800px) rotateX(20deg) scale(.85) translateY(26px)} 100%{opacity:1;transform:none} }
+#mxChargeTiersV163 .mct-box::before{ content:''; position:absolute; inset:-40px; pointer-events:none; z-index:0;
+  background:repeating-conic-gradient(from 0deg,rgba(224,180,85,.14) 0 9deg,transparent 9deg 20deg); animation:petSpin 18s linear infinite; }
+#mxChargeTiersV163 .mct-box > *{ position:relative; z-index:1; }
+#mxChargeTiersV163 .mct-box h3{ font-size:17px!important; color:#9a5a12!important; letter-spacing:1px; text-shadow:0 1px 0 #fff9; }
+#mxChargeTiersV163 .mct-btn{ background:linear-gradient(180deg,#fff8e4,#efdbab)!important; border:1.5px solid #c9a24a!important;
+  box-shadow:inset 0 1px 0 #fff9,0 3px 7px rgba(120,80,20,.18); }
+#mxChargeTiersV163 .mct-btn b{ color:#b5651d!important; }
+
+/* ---------- ② 充能成功：电影剧院仪式卡 ---------- */
+#mx181Rit{ position:fixed; inset:0; z-index:230; display:none; align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at 50% 42%,rgba(24,38,28,.66),rgba(4,8,6,.96)); overflow:hidden; cursor:pointer;
+  backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+#mx181Rit.show{ display:flex; animation:mx181Fade .45s ease both; }
+@keyframes mx181Fade{ from{opacity:0} to{opacity:1} }
+.mx181-curtain{ position:absolute; top:0; bottom:0; width:23%; z-index:3; pointer-events:none;
+  background:repeating-linear-gradient(90deg,#5c1010 0,#7d1717 14px,#4a0c0c 28px,#8f1d1d 42px); box-shadow:inset 0 0 60px rgba(0,0,0,.6); }
+.mx181-cl{ left:0; border-right:3px solid #d9a531; animation:mx181CurL .9s cubic-bezier(.3,1,.4,1) both; }
+.mx181-cr{ right:0; border-left:3px solid #d9a531; animation:mx181CurR .9s cubic-bezier(.3,1,.4,1) both; }
+@keyframes mx181CurL{ from{transform:translateX(-102%)} to{transform:none} }
+@keyframes mx181CurR{ from{transform:translateX(102%)} to{transform:none} }
+.mx181-beam{ position:absolute; left:50%; top:-10%; width:160vw; height:125%; z-index:1; pointer-events:none; transform:translateX(-50%);
+  background:conic-gradient(from 176deg at 50% -6%,transparent 0deg,rgba(255,244,198,.20) 11deg,transparent 22deg,
+  transparent 338deg,rgba(255,244,198,.20) 349deg,transparent 360deg); animation:mx181Beam 5s ease-in-out infinite alternate; }
+@keyframes mx181Beam{ from{opacity:.65;transform:translateX(-50%) scale(1)} to{opacity:1;transform:translateX(-50%) scale(1.08)} }
+.mx181-card{ position:relative; z-index:5; width:min(86vw,330px); text-align:center; padding:20px 16px 18px; border-radius:20px;
+  background:radial-gradient(circle at 50% 18%,#fffdf4,#f5e8c8 66%,#e4cb99);
+  border:2.5px solid #e3bf62; box-shadow:0 18px 60px rgba(0,0,0,.62),inset 0 0 0 3px rgba(255,255,255,.6),0 0 46px rgba(255,214,110,.6);
+  animation:mx181CardIn .8s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes mx181CardIn{ 0%{opacity:0;transform:perspective(700px) rotateX(24deg) scale(.78) translateY(32px)} 100%{opacity:1;transform:none} }
+.mx181-rays{ position:absolute; inset:-46px; z-index:0; pointer-events:none; border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,rgba(255,214,110,.18) 0 9deg,transparent 9deg 21deg); animation:petSpin 13s linear infinite; }
+.mx181-label{ position:relative; z-index:1; font-size:9.5px; font-weight:900; letter-spacing:4px; color:#b8860b; opacity:.9; }
+.mx181-ava{ position:relative; z-index:1; width:112px; height:112px; margin:7px auto 2px; border-radius:50%; overflow:hidden;
+  box-shadow:0 0 0 5px #e3bf62,0 0 34px rgba(255,214,110,.85); background:#fff; animation:mx181Ava 2s ease-in-out infinite alternate; }
+.mx181-ava svg{ width:100%; height:100%; display:block; }
+@keyframes mx181Ava{ from{transform:translateY(0)} to{transform:translateY(-6px)} }
+.mx181-spark{ position:absolute; z-index:1; color:#ffcf4a; font-size:15px; text-shadow:0 0 8px #ffb400; animation:mx181Twinkle 1.2s ease-in-out infinite; }
+@keyframes mx181Twinkle{ 0%,100%{opacity:.2;transform:scale(.7)} 50%{opacity:1;transform:scale(1.15)} }
+.mx181-title{ position:relative; z-index:1; font-size:15px; font-weight:900; letter-spacing:2px; color:#b5341f; margin-top:2px; text-shadow:0 1px 0 #fff9; }
+.mx181-src{ position:relative; z-index:1; font-size:10px; font-weight:800; color:#7a5310; margin-top:3px; opacity:.85; }
+.mx181-energy{ position:relative; z-index:1; font-size:13px; font-weight:800; color:#7a6a4d; margin:6px 0 2px; }
+.mx181-energy .mx181-from{ color:#9a8260; } .mx181-energy .mx181-arrow{ color:#c0392b; margin:0 4px; font-size:16px; }
+.mx181-energy .mx181-to{ color:#1e9e52; font-size:17px; font-weight:900; }
+.mx181-gain{ position:relative; z-index:1; display:inline-block; margin:2px 0 0; padding:2px 12px; border-radius:14px;
+  font-size:12px; font-weight:900; color:#fff; background:linear-gradient(135deg,#e9b54a,#c8891e); box-shadow:0 2px 8px rgba(180,120,30,.4); }
+.mx181-say{ position:relative; z-index:1; font-size:11px; font-weight:800; color:#1e6b4a; line-height:1.5; margin:9px auto 0;
+  padding:6px 10px; background:#fffdf5; border:1.5px solid #bfe3c4; border-radius:11px; box-shadow:0 2px 7px rgba(30,120,70,.16); }
+.mx181-tap{ position:relative; z-index:1; font-size:9px; color:#a0804a; margin-top:11px; opacity:.7; letter-spacing:1px; animation:mx181Tap 1.6s ease-in-out infinite; }
+@keyframes mx181Tap{ 0%,100%{opacity:.4} 50%{opacity:.95} }
+.mx181-orb{ position:absolute; z-index:4; pointer-events:none; font-size:14px; opacity:0; }
+.mx181-orb.go{ animation:mx181Orb 1.5s cubic-bezier(.2,.7,.4,1) forwards; }
+@keyframes mx181Orb{ 0%{opacity:0;transform:translate(0,0) scale(.5)} 20%{opacity:1} 100%{opacity:0;transform:translate(var(--ox),var(--oy)) scale(1.2)} }
+@media (prefers-reduced-motion:reduce){ .mx181-curtain,.mx181-beam,.mx181-rays,.mx181-ava,.mx181-spark,.mx181-tap,.mx181-orb{ animation-duration:.001s!important; } }
+</style>
+<script>
+(function(){
+  'use strict';
+  if(window.__MX_V181) return; window.__MX_V181=true;
+  var THANKS=[
+    '这波传统游戏积分我收下啦，回头请你喝擂茶～',
+    '能量注满！你尽管出牌，长大这事交给我🌲',
+    '又离「明溪杉王」近一步，君子峰的云海更近啦～',
+    '充能完毕，叶子都精神了！再来一局？',
+    '积分化绿光，杉杉满血复活！多谢投喂⚡'
+  ];
+  function $(id){ return document.getElementById(id); }
+  function fmt(n){ n=Math.round(n||0); return (n+'').replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+  function unlockAudio(){
+    try{ if(window.__mx181Unlocked) return; window.__mx181Unlocked=true;
+      var u=function(){ try{ var a=document.createElement('audio'); a.src='data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjQwLjEwMAAAAAAAAAAAAAAA//tQxAADBQAAAP//////////////////////////////////////////////////////////////8AAA=='; a.load(); var p=a.play(); if(p&&p.catch)p.catch(function(){}); }catch(e){} };
+      if(window.WeixinJSBridge&&window.WeixinJSBridge.invoke) WeixinJSBridge.invoke('getNetworkType',{},u); else u();
+    }catch(e){}
+  }
+  document.addEventListener('touchstart',unlockAudio,{once:true,passive:true});
+  document.addEventListener('click',unlockAudio,{once:true});
+
+  function buildRit(){
+    var ov=document.createElement('div'); ov.id='mx181Rit';
+    ov.innerHTML='<div class="mx181-curtain mx181-cl"></div><div class="mx181-curtain mx181-cr"></div>'
+      +'<div class="mx181-beam"></div>'
+      +'<div class="mx181-card"><div class="mx181-rays"></div>'
+      +'<div class="mx181-label">✦ ENERGY INFUSION ✦</div>'
+      +'<div class="mx181-ava" id="mx181Ava"></div>'
+      +'<div class="mx181-spark" style="top:16%;left:20%">✦</div>'
+      +'<div class="mx181-spark" style="top:26%;right:18%;animation-delay:.4s">✧</div>'
+      +'<div class="mx181-spark" style="top:40%;left:14%;animation-delay:.8s">✦</div>'
+      +'<div class="mx181-title">杉杉充能 · 能量注入</div>'
+      +'<div class="mx181-src" id="mx181Src">🎮 传统游戏 / 小游戏积分</div>'
+      +'<div class="mx181-energy"><span class="mx181-from" id="mx181From">0</span><span class="mx181-arrow">⟶</span><span class="mx181-to" id="mx181To">0</span></div>'
+      +'<div class="mx181-gain" id="mx181Gain">⚡ +0 能量</div>'
+      +'<div class="mx181-say" id="mx181Say"></div>'
+      +'<div class="mx181-tap">轻触谢幕</div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click',function(){ closeRit(); });
+    return ov;
+  }
+  function closeRit(){ var ov=$('mx181Rit'); if(ov) ov.classList.remove('show');
+    try{ if(window.__mx181Stop) window.__mx181Stop(); }catch(e){} }
+  function roll(el,from,to,dur){
+    if(!el) return; var t0=performance.now();
+    function step(t){ var p=Math.min(1,(t-t0)/dur); var e=1-Math.pow(1-p,3);
+      el.textContent=fmt(Math.round(from+(to-from)*e)); if(p<1) requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  }
+  function showRit(amt){
+    unlockAudio();
+    var ov=$('mx181Rit')||buildRit();
+    var after=0; try{ after=window.MX_WX?window.MX_WX.energy():0; }catch(e){}
+    var before=Math.max(0,after-amt);
+    var ava=$('mx181Ava'); if(ava){ try{ ava.innerHTML=window.MX_PET.svg(window.MX_PET.state().idx); }catch(e){ ava.innerHTML='🌲'; } }
+    var from=$('mx181From'), to=$('mx181To');
+    if(from) from.textContent=fmt(before); if(to) to.textContent=fmt(before);
+    roll(to,before,after,900);
+    var g=$('mx181Gain'); if(g) g.textContent='⚡ +'+fmt(amt)+' 能量';
+    var sy=$('mx181Say'); if(sy){ sy.textContent='「'+THANKS[Math.floor(Math.random()*THANKS.length)]+'」'; }
+    /* 粒子 */
+    var card=ov.querySelector('.mx181-card');
+    var old=ov.querySelectorAll('.mx181-orb'); Array.prototype.forEach.call(old,function(o){o.remove();});
+    if(card){ var ico=['🌟','💫','✨','🌿','💚','⚡'];
+      for(var k=0;k<16;k++){ (function(k){ var o=document.createElement('i'); o.className='mx181-orb'; o.textContent=ico[k%ico.length];
+        var ang=Math.random()*Math.PI*2, dist=90+Math.random()*90;
+        o.style.left='50%'; o.style.top='34%'; o.style.setProperty('--ox',(Math.cos(ang)*dist).toFixed(0)+'px');
+        o.style.setProperty('--oy',(Math.sin(ang)*dist).toFixed(0)+'px'); o.style.animationDelay=(Math.random()*.25).toFixed(2)+'s';
+        ov.appendChild(o); setTimeout(function(){ o.classList.add('go'); },30); })(k); } }
+    ov.classList.remove('show'); void ov.offsetWidth; ov.classList.add('show');
+    try{ if(window.CineAudio) CineAudio.power&&CineAudio.power(); else if(window.SFX) SFX.win(); }catch(e){}
+    try{ if(navigator.vibrate) navigator.vibrate([16,36,16]); }catch(e){}
+    clearTimeout(ov._t); ov._t=setTimeout(closeRit,4600);
+  }
+  /* 语音播报仪式台词（可选，点击卡片时顺带听）——不自动出声 */
+  /* Hook showToast：拦截「小游戏积分充能 +X」→ 电影仪式卡，吞掉原 toast */
+  var origToast=window.showToast;
+  window.showToast=function(msg){
+    var s=String(msg==null?'':msg);
+    var m=s.match(/小游戏积分充能\s*\+([\d,]+)/);
+    if(m){
+      var amt=parseInt(m[1].replace(/,/g,''),10)||0;
+      try{ showRit(amt); }catch(e){ if(origToast) return origToast.apply(this,arguments); }
+      return;
+    }
+    return origToast?origToast.apply(this,arguments):undefined;
+  };
 })();
 </script>
 
