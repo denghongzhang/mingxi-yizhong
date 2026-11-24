@@ -7580,7 +7580,7 @@ document.getElementById('btnDevLoginClose').onclick=function(){ closeOv('ovDevLo
     h+='</div>';
     /* ===== v162 · 九级杉杉基地（家）：电影质感场景 + 剧情动画 ===== */
     h+=renderBase(st.idx,en);
-    h+='<div class="pet-tip">📌 杉杉能量随你闯关积累的<b>累计积分</b>实时成长，只增不减；每达到本级满能量即进化下一级。你是明溪「南方红豆杉之乡」的守护者，快去点亮更多校史、攒积分让杉杉长成<b>明溪杉王</b>吧！</div>'
+    h+='<div class="pet-tip">📌 杉杉能量随你闯关积累的<b>积分</b>成长，闯关、充能或进食都会<b>只增</b>；同时每天会自然衰减一部分，用来驱动明溪的晴雨天气——坚持每日闯关即可稳步成长、每达本级满能量即进化下一级。你是明溪「南方红豆杉之乡」的守护者，快去点亮更多校史、攒积分让杉杉长成<b>明溪杉王</b>吧！</div>'
       +'<div style="text-align:center"><button class="pet-go" id="btnPetGo">🎮 去闯关攒能量</button></div>';
     body.innerHTML=h;
     var go=document.getElementById('btnPetGo');
@@ -14829,12 +14829,13 @@ window.MX_VER='176';
     if(line) line.textContent=text;
     talkEl.classList.add('show','speaking');
     try{ BaseAudio.chime(); }catch(e){}
-    try{ if(typeof window.speakTTS==='function') window.speakTTS(text,'female'); }catch(e){}
+    /* v180：移除自动朗读，改为气泡🔊键手动触发，避免自动出声打扰 */
     clearTimeout(_talkTimer);
     _talkTimer=setTimeout(function(){ talkEl.classList.remove('speaking'); },2600);
   }
   function closeTalk(talkEl){ if(talkEl) talkEl.classList.remove('show','speaking');
-    try{ if(typeof window.speakTTS==='function') window.speakTTS(''); }catch(e){} }
+    try{ if(typeof window.speakTTS==='function') window.speakTTS(''); }catch(e){}
+    try{ if(window.__mx180StopSpeak) window.__mx180StopSpeak(); }catch(e){} }
 
   function decorate(){
     var base=document.querySelector('#ovPet .pet-base');
@@ -14859,7 +14860,7 @@ window.MX_VER='176';
     });
     /* 对话气泡 */
     var talk=document.createElement('div'); talk.className='v177-talk';
-    talk.innerHTML='<div class="v177-ava"></div><div class="v177-bub"><div class="v177-who"></div><div class="v177-line"></div><div class="v177-x">×</div></div>';
+    talk.innerHTML='<div class="v177-ava"></div><div class="v177-bub"><div class="v177-who"></div><div class="v177-line"></div><button class="v180-spk" type="button" title="点我朗读">🔊</button><div class="v177-x">×</div></div>';
     scene.appendChild(talk);
     var ava=talk.querySelector('.v177-ava');
 
@@ -14914,7 +14915,10 @@ window.MX_VER='176';
     scene2.addEventListener('touchend',function(){ setTimeout(function(){scene2.style.transform='';},400); });
 
     /* 首次进入自动欢迎（轻提示，不打断） */
-    setTimeout(function(){ if(!base.dataset.v177Wel){ base.dataset.v177Wel='1'; nextLine(); } },700);
+    setTimeout(function(){ if(!base.dataset.v177Wel){ base.dataset.v177Wel='1'; nextLine();
+      /* v180：自动欢迎后清除 speaking，停留为静态气泡，不自动朗读 */
+      setTimeout(function(){ talk.classList.remove('speaking'); }, 300);
+    } },700);
   }
 
   /* 用统一轮询装饰（petRender 之后 DOM 稳定） */
@@ -15326,6 +15330,96 @@ window.MX_VER='176';
   var timer=setInterval(function(){ if(build()) clearInterval(timer); },300);
   setTimeout(function(){ clearInterval(timer); },30000);
   window.MX_ASSIST={ open:openAssistant };
+})();
+</script>
+
+<!-- ============ v180 · 对话气泡🔊朗读键（微信可用） ============ -->
+<style>
+/* 气泡朗读键 */
+.v177-talk .v180-spk{
+  position:absolute; right:24px; bottom:7px; min-width:30px; height:26px; padding:0 7px;
+  border:1px solid rgba(214,168,74,.85); border-radius:14px; cursor:pointer;
+  color:#7a5310; background:linear-gradient(180deg,#fff7de,#f2dda4); font-size:13px; line-height:1;
+  box-shadow:0 2px 5px rgba(120,80,20,.25); -webkit-tap-highlight-color:transparent;
+  display:flex; align-items:center; justify-content:center; gap:2px; z-index:3;
+}
+.v177-talk .v180-spk:active{ transform:translateY(1px); box-shadow:none; }
+.v177-talk .v180-spk.on{ color:#fff; background:linear-gradient(180deg,#2a9b64,#166b42); border-color:#8fe0b0; }
+.v177-talk .v180-spk .v180-wave{ font-size:9px; opacity:.9; }
+/* 给气泡正文留出朗读键空间 */
+.v177-talk .v177-bub .v177-line{ padding-right:34px; }
+</style>
+<script>
+(function(){
+  'use strict';
+  var _spk=null, _playing=false, _seq=0;
+
+  /* 微信内置浏览器：首次触摸/点击时解锁 Audio 上下文，确保后续 new Audio().play() 可发声 */
+  var _wxUnlocked=false;
+  function wxUnlock(){
+    if(_wxUnlocked) return; _wxUnlocked=true;
+    try{
+      var unlock=function(){
+        try{
+          var a=document.createElement('audio');
+          a.src='data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjQwLjEwMAAAAAAAAAAAAAAA//tQxAADBQAAAP//////////////////////////////////////////////////////////////8AAA==';
+          a.load(); var p=a.play(); if(p&&p.catch) p.catch(function(){});
+        }catch(e){}
+      };
+      if(window.WeixinJSBridge && window.WeixinJSBridge.invoke){
+        window.WeixinJSBridge.invoke('getNetworkType', {}, unlock);
+      } else { unlock(); }
+    }catch(e){}
+    try{ if(window.CineAudio) window.CineAudio.unlock && window.CineAudio.unlock(); }catch(e){}
+  }
+  document.addEventListener('touchstart', wxUnlock, {once:true, passive:true});
+  document.addEventListener('click', wxUnlock, {once:true});
+
+  function stopSpeak(){
+    _seq++; _playing=false;
+    if(_spk){ _spk.classList.remove('on'); _spk.innerHTML='🔊'; }
+    try{ if(typeof window.speakTTS==='function') window.speakTTS(''); }catch(e){}
+    try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
+  }
+  window.__mx180StopSpeak=stopSpeak;
+
+  /* 朗读当前气泡台词（点🔊键触发） */
+  function speakBubble(talk){
+    if(!talk) return;
+    wxUnlock();
+    if(_playing){ stopSpeak(); return; }
+    var line=talk.querySelector('.v177-line');
+    var text=line?(line.textContent||'').trim():'';
+    if(!text) return;
+    _playing=true; var seq=++_seq;
+    _spk=talk.querySelector('.v180-spk');
+    if(_spk){ _spk.classList.add('on'); _spk.innerHTML='🔊<span class="v180-wave">♪</span>'; }
+    /* 估算朗读时长后复位（中文约 5 字/秒，留 1s 余量；在线/设备 TTS 均可覆盖） */
+    var dur=Math.max(2200, Math.min(15000, text.length*210+1000));
+    setTimeout(function(){ if(seq===_seq){ _playing=false; if(_spk){ _spk.classList.remove('on'); _spk.innerHTML='🔊'; } } }, dur);
+    try{ if(typeof window.speakTTS==='function') window.speakTTS(text,'female'); }catch(e){
+      _playing=false; if(_spk){ _spk.classList.remove('on'); _spk.innerHTML='🔊'; }
+    }
+  }
+
+  /* 轮询绑定：气泡由 v177 动态注入，出现后绑定🔊键 */
+  function bind(){
+    try{
+      var ov=document.getElementById('ovPet');
+      if(ov && ov.classList.contains('show')){
+        var talks=ov.querySelectorAll('.v177-talk');
+        Array.prototype.forEach.call(talks, function(talk){
+          var btn=talk.querySelector('.v180-spk');
+          if(btn && !btn._v180){
+            btn._v180=true;
+            btn.addEventListener('click', function(e){ e.stopPropagation(); speakBubble(talk); });
+          }
+        });
+      }
+    }catch(e){}
+  }
+  if(window.__MX_POLL) window.__MX_POLL.add(bind); else setInterval(bind,500);
+  window.addEventListener('load',function(){ setTimeout(bind,600); });
 })();
 </script>
 
