@@ -15012,5 +15012,322 @@ window.MX_VER='176';
 })();
 </script>
 
+
+<!-- v179 · 杉杉生活助理：样式 -->
+<style>
+/* 成长中心顶部入口条 */
+.mx179-entry{margin:8px auto 4px;max-width:560px;padding:11px 14px;border-radius:14px;cursor:pointer;
+  background:linear-gradient(135deg,#eef6dc,#dcecc0);border:2px solid #9dbd74;
+  box-shadow:0 3px 12px rgba(70,110,45,.16);display:flex;align-items:center;gap:12px;transition:.18s;}
+.mx179-entry:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(70,110,45,.24);}
+.mx179-entry .mx179-eico{font-size:30px;flex:0 0 auto;filter:drop-shadow(0 2px 3px rgba(60,90,40,.3));}
+.mx179-entry .mx179-etxt{flex:1;text-align:left;}
+.mx179-entry .mx179-etxt b{display:block;font-size:15px;color:#20502e;font-family:serif;}
+.mx179-entry .mx179-etxt small{display:block;font-size:11px;color:#5b8049;margin-top:2px;}
+.mx179-entry .mx179-arrow{font-size:20px;color:#5a8a4a;}
+
+/* 助理面板 */
+#ovAsst{z-index:120;}
+#ovAsst .panel{max-width:620px;max-height:88vh;overflow-y:auto;padding:0 0 14px;}
+.mx179-head{position:sticky;top:0;z-index:2;padding:14px 16px 12px;text-align:center;
+  background:linear-gradient(135deg,#f4f9e9,#e6f2d0);border-bottom:2px solid #cfe0ae;border-radius:12px 12px 0 0;}
+.mx179-head h2{margin:0;font-family:serif;font-size:20px;color:#1e4a2c;}
+.mx179-head .mx179-sub{font-size:11px;color:#6b8f57;margin-top:2px;}
+.mx179-mascot{font-size:34px;display:inline-block;vertical-align:middle;margin-right:6px;animation:mx179Float 3s ease-in-out infinite;}
+@keyframes mx179Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.mx179-greet{margin:8px 16px 4px;padding:9px 13px;border-radius:12px;background:#fffdf4;border:1px solid #e2d9b8;
+  font-size:13px;color:#4a5b36;line-height:1.6;position:relative;}
+.mx179-greet b{color:#2f6b3a;}
+.mx179-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:8px 14px;}
+@media(max-width:420px){.mx179-grid{grid-template-columns:1fr;}}
+.mx179-card{background:linear-gradient(135deg,#fffef9,#f7faef);border:2px solid #d8e5c1;border-radius:14px;
+  padding:11px 12px;box-shadow:0 2px 8px rgba(60,95,45,.08);min-height:96px;}
+.mx179-card .mx179-ct{font-size:15px;font-weight:800;color:#24532f;font-family:serif;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.mx179-card .mx179-ct .ic{font-size:19px;}
+.mx179-card .mx179-ch{font-size:12.5px;color:#4c6b42;line-height:1.65;min-height:34px;}
+.mx179-btn{display:inline-block;margin:6px 4px 0 0;padding:6px 12px;border:none;border-radius:9px;cursor:pointer;
+  background:linear-gradient(135deg,#5f9150,#3f6b32);color:#fff;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(50,90,35,.2);}
+.mx179-btn.ghost{background:#eef4e2;color:#3f6b32;box-shadow:none;border:1px solid #bcd39a;}
+.mx179-btn.sm{padding:4px 9px;font-size:11px;}
+.mx179-input{width:100%;box-sizing:border-box;margin-top:5px;padding:7px 9px;border:1px solid #c4d7a5;border-radius:9px;
+  font-size:13px;color:#2f4a30;background:#fffef9;outline:none;}
+.mx179-input:focus{border-color:#7fa85f;}
+.mx179-value{font-size:13px;color:#2f6b3a;font-weight:700;}
+/* 待办 */
+.mx179-todos{margin-top:6px;max-height:150px;overflow-y:auto;}
+.mx179-todo{display:flex;align-items:center;gap:7px;padding:4px 2px;font-size:12.5px;color:#3a5a38;border-bottom:1px dashed #dfead0;}
+.mx179-todo.done span{text-decoration:line-through;color:#9aa88c;}
+.mx179-todo input[type=checkbox]{accent-color:#5a8a4a;width:15px;height:15px;cursor:pointer;}
+.mx179-todo .mx179-del{margin-left:auto;cursor:pointer;color:#b56a5a;font-size:14px;}
+.mx179-row{display:flex;gap:5px;align-items:center;}
+.mx179-row .mx179-input{flex:1;margin-top:0;}
+/* 喝水 */
+.mx179-cups{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px;}
+.mx179-cup{font-size:20px;cursor:pointer;filter:grayscale(1);opacity:.45;transition:.15s;}
+.mx179-cup.on{filter:none;opacity:1;transform:scale(1.05);}
+/* 番茄钟 */
+.mx179-clock{font-family:serif;font-size:30px;font-weight:800;color:#2f6b3a;text-align:center;margin:2px 0;}
+.mx179-ring{height:6px;background:#e4edd6;border-radius:4px;overflow:hidden;margin:4px 0 2px;}
+.mx179-ring i{display:block;height:100%;background:linear-gradient(90deg,#8fbf6a,#4f8240);width:0;transition:width .5s;}
+/* 骰子 */
+.mx179-dice{font-size:34px;text-align:center;margin:4px 0;min-height:40px;}
+.mx179-pick{margin-top:6px;padding:8px;border-radius:10px;background:#eef6e0;border:1px solid #c9dda9;
+  font-size:14px;font-weight:800;color:#2c6035;text-align:center;display:none;}
+/* 冷知识/一言 */
+.mx179-quote{font-family:serif;font-size:13.5px;line-height:1.8;color:#33522f;background:#fbf7e8;
+  border-left:3px solid #c2a24a;padding:7px 10px;border-radius:0 8px 8px 0;margin-top:4px;}
+/* 倒计时 */
+.mx179-cd{margin-top:6px;}
+.mx179-cditem{display:flex;align-items:center;gap:6px;padding:5px 8px;margin-top:5px;background:#f3f8e9;border:1px solid #d5e4bb;border-radius:9px;font-size:12.5px;color:#3f5f3a;}
+.mx179-cditem b{color:#b06a2f;font-size:14px;margin-left:auto;}
+.mx179-close{display:block;margin:12px auto 0;padding:9px 34px;border:none;border-radius:10px;cursor:pointer;
+  background:linear-gradient(135deg,#5f9150,#3f6b32);color:#fff;font-size:14px;font-weight:800;box-shadow:0 3px 10px rgba(50,90,35,.25);}
+.mx179-tip{font-size:10.5px;color:#8a9a7a;text-align:center;margin-top:8px;}
+</style>
+
+<!-- v179 · 杉杉生活助理：逻辑（9 项功能） -->
+<script>
+(function(){
+  'use strict';
+  var KEY='mx179_';
+  function load(k,d){ try{ var v=localStorage.getItem(KEY+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }
+  function save(k,v){ try{ localStorage.setItem(KEY+k,JSON.stringify(v)); }catch(e){} }
+  function say(t){ try{ if(typeof speakTTS==='function') speakTTS(t,'female'); }catch(e){} }
+  function $(s,r){ return (r||document).querySelector(s); }
+  function today(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+  /* ===== 内容库（明溪特色 + 日常生活）===== */
+  var QUOTES=[
+    '种一棵树最好的时间是十年前，其次是现在——就像杉杉陪你从红豆子长大。',
+    '把今天过好，明天自然会来。明溪的雾再浓，太阳也会翻过君子峰。',
+    '慢一点没关系，杉杉长成杉王也用了好多年。',
+    '你今天读的每一页书，都会在某个时刻替你说话。',
+    '心若向阳，无惧风和雨——就像红豆杉，雪越重越挺拔。',
+    '别急着开花，先把根扎深。明溪的泥土记得每一份努力。',
+    '真正的高手，是把简单的事重复做到极致。',
+    '今天的努力，是明天的底气。加油，你比想象中更厉害。',
+    '滴水穿石，不是力量大，而是功夫深。',
+    '无论走多远，别忘了来时的路——明溪永远是杉杉的家。'
+  ];
+  var FACTS=[
+    '明溪是"中国红豆杉之乡"，红豆杉提取的紫杉醇是重要的抗癌药物原料。',
+    '明溪古称"归化"，是客家文化的重要聚居地，客家擂茶是当地待客佳品。',
+    '君子峰是明溪的最高峰之一，冬天常能见到雾凇奇景。',
+    '玉虚洞是明溪著名的喀斯特溶洞，洞内钟乳石千姿百态。',
+    '明溪的金线莲素有"软黄金"之称，是名贵的中药材。',
+    '红豆杉的种子外包着红色肉质假种皮，鲜艳诱人，但种子本身有毒哦。',
+    '明溪是全国著名的"橄榄球之乡"之一，体育人才辈出。',
+    '红豆杉是远古孑遗植物，被称为"植物活化石"，寿命可达上千年。',
+    '明溪的客家人会在节庆时制作"兜汤""客秋包"等特色美食。',
+    '红豆杉四季常青，秋冬结出红豆般的果实，是极佳的观赏树种。'
+  ];
+  var CHEERS=[
+    '杉杉给你加油啦！你超棒的，别停下！✨',
+    '深呼吸，你已经很努力了，剩下的交给时间。🌿',
+    '累了就歇会儿，杉杉在这儿陪着你呢。🍃',
+    '相信自己！明溪的山都能登顶，这点小事算什么！⛰️',
+    '今天的你，比昨天又进步了一点点，真厉害！🌟',
+    '别灰心，红豆子也能长成杉王，你一样可以！🌱'
+  ];
+  var ENCOURAGE_DICE=['就选它！果断一点，杉杉看好你 💪','再想想，但别想太久哦～','听内心的第一直觉！','换个角度，选那个让你更兴奋的！','两个都好，那就选没选过的那个～','抛开顾虑，选最简单的那个！'];
+
+  /* ===== 构建面板 ===== */
+  function build(){
+    if(document.getElementById('ovAsst')) return true;
+    // 挂载到 body
+    var ov=document.createElement('div'); ov.className='overlay'; ov.id='ovAsst';
+    ov.innerHTML='<div class="panel">'
+      +'<div class="mx179-head"><h2><span class="mx179-mascot">🌲</span>杉杉生活助理</h2>'
+      +'<div class="mx179-sub">你的日常小帮手 · 明溪杉王贴心陪伴</div></div>'
+      +'<div class="mx179-greet" id="mx179Greet"></div>'
+      +'<div class="mx179-grid">'
+      +card('daily','📖','每日一言','一句鼓励，开启好心情')
+      +card('weather','🌤️','天气管家','穿衣出行，杉杉来提醒')
+      +card('pomo','⏱️','专注番茄钟','25 分钟，专注此刻')
+      +card('todo','✅','待办清单','把要做的事交给杉杉')
+      +card('water','💧','喝水打卡','一天八杯，健康相伴')
+      +card('dice','🎲','决策骰子','选择困难？让杉杉帮你')
+      +card('fact','💡','明溪冷知识','每天懂一点明溪')
+      +card('cheer','🎈','心情打气','不开心？来听杉杉说')
+      +card('countdown','📅','重要日子','倒计时，不错过每个日子')
+      +'</div>'
+      +'<button class="mx179-close" id="mx179Close">收起助理</button>'
+      +'<div class="mx179-tip">数据仅保存在本机 · 杉杉陪你每一天 🌿</div>'
+      +'</div>';
+    document.body.appendChild(ov);
+
+    // 入口条：插入成长中心面板（在 h2 之后、petBody 之前）
+    var petPanel=$('#ovPet .pet-panel');
+    if(petPanel && !document.getElementById('mx179Entry')){
+      var entry=document.createElement('div'); entry.className='mx179-entry'; entry.id='mx179Entry';
+      entry.innerHTML='<span class="mx179-eico">🌲</span><span class="mx179-etxt"><b>杉杉生活助理 · 上新啦</b><small>每日一言 / 天气 / 番茄钟 / 待办 / 喝水 / 决策 / 冷知识 / 打气 / 倒计时</small></span><span class="mx179-arrow">›</span>';
+      var h2=$('.pet-h2',petPanel);
+      if(h2) h2.parentNode.insertBefore(entry,h2.nextSibling);
+      entry.addEventListener('click',function(e){ e.stopPropagation(); openAssistant(); });
+    }
+    // 关闭
+    $('#mx179Close').addEventListener('click',function(){ closeOv('ovAsst'); });
+    ov.addEventListener('click',function(e){ if(e.target===ov) closeOv('ovAsst'); });
+
+    renderGreet(); initDaily(); initWeather(); initPomo(); initTodo();
+    initWater(); initDice(); initFact(); initCheer(); initCountdown();
+    return true;
+  }
+  function card(id,ic,title,sub){
+    return '<div class="mx179-card"><div class="mx179-ct"><span class="ic">'+ic+'</span>'+title+'</div>'
+      +'<div class="mx179-ch" id="mx179_'+id+'">'+sub+'</div><div id="mx179_'+id+'_x"></div></div>';
+  }
+  function openAssistant(){
+    try{ if(typeof openOv==='function') openOv('ovAsst'); else document.getElementById('ovAsst').classList.add('show'); }catch(e){}
+    renderGreet(); refreshWeather();
+  }
+  function renderGreet(){
+    var h=new Date().getHours(), g=h<6?'夜深了，早点休息呀':h<11?'早上好！新的一天开始啦':h<14?'中午好，记得吃饭哦':h<18?'下午好，加油打气中':h<22?'晚上好，辛苦一天了':'夜深了，别熬太晚';
+    var st=(window.MX_PET&&MX_PET.state)?MX_PET.state():null;
+    var lvName=st&&st.lv?st.lv.name:'明溪杉王';
+    $('#mx179Greet').innerHTML='<b>杉杉 · '+lvName+'</b>  say：'+g+'！我是你的生活小助理，今天有什么需要我帮忙的？🌿';
+  }
+
+  /* 1. 每日一言 */
+  function initDaily(){
+    var d=today(), idx=0; for(var i=0;i<d.length;i++) idx+=d.charCodeAt(i); idx=idx%QUOTES.length;
+    var box=$('#mx179_daily'), x=$('#mx179_daily_x');
+    box.className='mx179-quote'; box.textContent='“'+QUOTES[idx]+'”';
+    x.innerHTML='<button class="mx179-btn ghost sm" id="mx179SayDaily">🎙 读给我听</button>';
+    $('#mx179SayDaily').onclick=function(){ say(QUOTES[idx]); };
+  }
+  /* 2. 天气管家 */
+  function refreshWeather(){
+    var box=$('#mx179_weather'), x=$('#mx179_weather_x');
+    var W=(typeof WX!=='undefined'&&WX)?WX:null;
+    var code=W&&W.cur?W.cur.code:0, temp=W&&W.cur?W.cur.temp:null;
+    var d=(typeof WX_CODE!=='undefined'&&WX_CODE[code])?WX_CODE[code][0]:'晴';
+    var advice;
+    if(temp==null) advice='天气数据加载中，联网后我会给你穿衣出行建议～';
+    else if(code>=95) advice='有雷暴！记得带伞、减少外出，安全第一 ⚡';
+    else if(code>=71&&code<=77) advice='下雪啦，穿暖和点，注意防滑 ❄️';
+    else if(code>=61&&code<=67||code>=80&&code<=82) advice='有雨，出门记得带伞 ☔';
+    else if(temp>=30) advice='天气炎热，多喝水、注意防晒 ☀️';
+    else if(temp<=10) advice='天气较冷，多穿件外套保暖 🧥';
+    else advice='天气不错，适合出门走走，也适合来一局连连看 🌿';
+    box.innerHTML='<span class="mx179-value">'+(W?W.city:'三明')+' · '+(temp!=null?temp+'°C '+d:'获取中')+'</span><br>'+advice;
+    x.innerHTML='<button class="mx179-btn ghost sm" id="mx179SayWx">🎙 听天气建议</button>';
+    $('#mx179SayWx').onclick=function(){ say(W&&W.cur?W.city+'，'+temp+'度，'+d+'。'+advice:advice); };
+  }
+  function initWeather(){ refreshWeather(); }
+  /* 3. 专注番茄钟 */
+  function initPomo(){
+    var box=$('#mx179_pomo'), x=$('#mx179_pomo_x');
+    box.innerHTML='<div class="mx179-clock" id="mx179Clock">25:00</div><div class="mx179-ring"><i id="mx179RingBar"></i></div>';
+    x.innerHTML='<button class="mx179-btn sm" id="mx179PomoStart">▶ 开始</button>'
+      +'<button class="mx179-btn ghost sm" id="mx179PomoPause">⏸ 暂停</button>'
+      +'<button class="mx179-btn ghost sm" id="mx179PomoReset">↺ 重置</button>';
+    var total=25*60, left=total, timer=null;
+    function paint(){ var m=('0'+Math.floor(left/60)).slice(-2), s=('0'+(left%60)).slice(-2);
+      $('#mx179Clock').textContent=m+':'+s; $('#mx179RingBar').style.width=((total-left)/total*100)+'%'; }
+    function stop(){ if(timer){clearInterval(timer);timer=null;} }
+    $('#mx179PomoStart').onclick=function(){ if(timer)return; timer=setInterval(function(){
+      left--; paint(); if(left<=0){ stop(); left=total; paint(); box.innerHTML='<b style="color:#2c6035">🎉 专注完成！休息一下吧～</b>';
+        say('番茄钟完成啦！杉杉给你鼓掌，快起来活动活动！'); setTimeout(function(){ box.innerHTML='<div class="mx179-clock" id="mx179Clock">25:00</div><div class="mx179-ring"><i id="mx179RingBar"></i></div>'; paint(); },4000); }
+    },1000); };
+    $('#mx179PomoPause').onclick=function(){ stop(); };
+    $('#mx179PomoReset').onclick=function(){ stop(); left=total; paint(); };
+  }
+  /* 4. 待办清单 */
+  function initTodo(){
+    var box=$('#mx179_todo'), x=$('#mx179_todo_x');
+    var todos=load('todos',[]);
+    function paint(){
+      box.innerHTML=todos.length?'<div class="mx179-todos">'+todos.map(function(t,i){
+        return '<div class="mx179-todo'+(t.d?' done':'')+'"><input type="checkbox" data-i="'+i+'" '+(t.d?'checked':'')+'><span>'+esc(t.v)+'</span><span class="mx179-del" data-i="'+i+'">✕</span></div>';
+      }).join('')+'</div>':'还没有待办，添加一件试试～';
+      Array.prototype.forEach.call(box.querySelectorAll('input[type=checkbox]'),function(cb){
+        cb.onchange=function(){ todos[+cb.dataset.i].d=cb.checked; save('todos',todos); paint(); }; });
+      Array.prototype.forEach.call(box.querySelectorAll('.mx179-del'),function(b){
+        b.onclick=function(){ todos.splice(+b.dataset.i,1); save('todos',todos); paint(); }; });
+    }
+    x.innerHTML='<div class="mx179-row"><input class="mx179-input" id="mx179TodoIn" placeholder="输入待办事项…"><button class="mx179-btn sm" id="mx179TodoAdd">添加</button></div>';
+    function add(){ var v=$('#mx179TodoIn').value.trim(); if(!v)return; todos.push({v:v,d:false}); save('todos',todos); $('#mx179TodoIn').value=''; paint(); }
+    $('#mx179TodoAdd').onclick=add;
+    $('#mx179TodoIn').onkeydown=function(e){ if(e.key==='Enter') add(); };
+    paint();
+  }
+  /* 5. 喝水打卡 */
+  function initWater(){
+    var box=$('#mx179_water'), x=$('#mx179_water_x');
+    function paint(){
+      var rec=load('water',{d:'',n:0}); if(rec.d!==today()){ rec={d:today(),n:0}; }
+      var cups=''; for(var i=0;i<8;i++) cups+='<span class="mx179-cup'+(i<rec.n?' on':'')+'" data-i="'+i+'">💧</span>';
+      box.innerHTML='<span class="mx179-value">今日 '+rec.n+' / 8 杯</span>　'+(rec.n>=8?'达成！杉杉为你点赞 👍':'点击水滴打卡');
+      x.innerHTML='<div class="mx179-cups">'+cups+'</div>';
+      Array.prototype.forEach.call(x.querySelectorAll('.mx179-cup'),function(c){
+        c.onclick=function(){ var r=load('water',{d:'',n:0}); if(r.d!==today())r={d:today(),n:0};
+          var i=+c.dataset.i; r.n=(i+1===r.n)?i:i+1; save('water',r); paint();
+          if(r.n===8) say('八杯水达成！杉杉为你点赞，健康又一天！'); }; });
+    }
+    paint();
+  }
+  /* 6. 决策骰子 */
+  function initDice(){
+    var box=$('#mx179_dice'), x=$('#mx179_dice_x');
+    box.innerHTML='<div class="mx179-dice" id="mx179Dice">🎲</div><div class="mx179-pick" id="mx179Pick"></div>';
+    x.innerHTML='<div class="mx179-row"><input class="mx179-input" id="mx179DiceIn" placeholder="选项A, 选项B, 选项C"><button class="mx179-btn sm" id="mx179DiceGo">掷</button></div>';
+    $('#mx179DiceGo').onclick=function(){
+      var raw=$('#mx179DiceIn').value.trim(); if(!raw)return;
+      var opts=raw.split(/[,，、\s]+/).filter(Boolean); if(!opts.length)return;
+      var pick=opts[Math.floor(Math.random()*opts.length)], enc=ENCOURAGE_DICE[Math.floor(Math.random()*ENCOURAGE_DICE.length)];
+      var d=$('#mx179Dice'), p=$('#mx179Pick');
+      var n=0; var spin=setInterval(function(){ d.textContent=['🎲','⚀','⚁','⚂','⚃','⚄','⚅'][n%7]; n++;
+        if(n>10){ clearInterval(spin); d.textContent='✅'; p.style.display='block'; p.innerHTML='杉杉建议：<b>'+esc(pick)+'</b><br><span style="font-size:11px;color:#6b8f57">'+enc+'</span>'; say('杉杉建议你选：'+pick+'。'+enc); } },80);
+    };
+  }
+  /* 7. 明溪冷知识 */
+  function initFact(){
+    var box=$('#mx179_fact'), x=$('#mx179_fact_x');
+    var idx=load('factIdx',Math.floor(Math.random()*FACTS.length));
+    function paint(){ box.className='mx179-quote'; box.textContent=FACTS[idx]; }
+    x.innerHTML='<button class="mx179-btn ghost sm" id="mx179FactNext">换一条</button> <button class="mx179-btn ghost sm" id="mx179FactSay">🎙 朗读</button>';
+    $('#mx179FactNext').onclick=function(){ idx=(idx+1)%FACTS.length; save('factIdx',idx); paint(); say(FACTS[idx]); };
+    $('#mx179FactSay').onclick=function(){ say(FACTS[idx]); };
+    paint();
+  }
+  /* 8. 心情打气 */
+  function initCheer(){
+    var box=$('#mx179_cheer'), x=$('#mx179_cheer_x');
+    box.textContent='不开心或累了？点一下，听杉杉给你打打气～';
+    x.innerHTML='<button class="mx179-btn sm" id="mx179CheerGo">🎈 给我打气</button>';
+    $('#mx179CheerGo').onclick=function(){
+      var t=CHEERS[Math.floor(Math.random()*CHEERS.length)]; box.innerHTML='<b style="color:#2c6035">'+t+'</b>'; say(t);
+      try{ var pet=$('#mxGzPet'); if(pet){ pet.classList.remove('cheer'); void pet.offsetWidth; pet.classList.add('cheer'); } }catch(e){}
+    };
+  }
+  /* 9. 重要日子倒计时 */
+  function initCountdown(){
+    var box=$('#mx179_countdown'), x=$('#mx179_countdown_x');
+    var list=load('cds',[]);
+    function paint(){
+      var html='<div class="mx179-cd">';
+      list.forEach(function(c,i){ var days=Math.ceil((new Date(c.d+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000);
+        html+='<div class="mx179-cditem"><span>'+esc(c.n)+'</span><span style="color:#8a9a7a">'+c.d+'</span><b>'+(days>0?days+'天后':days===0?'就是今天':'已过'+(-days)+'天')+'</b><span class="mx179-del" data-i="'+i+'">✕</span></div>'; });
+      if(!list.length) html+='<div style="font-size:12px;color:#7a8f6e">还没有重要日子，在下面添加吧～</div>';
+      html+='</div>'; box.innerHTML=html;
+      Array.prototype.forEach.call(box.querySelectorAll('.mx179-del'),function(b){ b.onclick=function(){ list.splice(+b.dataset.i,1); save('cds',list); paint(); }; });
+    }
+    x.innerHTML='<div class="mx179-row"><input class="mx179-input" id="mx179CdN" placeholder="名称" style="max-width:40%"><input class="mx179-input" type="date" id="mx179CdD"><button class="mx179-btn sm" id="mx179CdAdd">+</button></div>';
+    $('#mx179CdAdd').onclick=function(){ var n=$('#mx179CdN').value.trim(), d=$('#mx179CdD').value; if(!n||!d)return;
+      list.push({n:n,d:d}); save('cds',list); $('#mx179CdN').value=''; paint();
+      var days=Math.ceil((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000);
+      say('已记下'+n+'，还有'+days+'天，杉杉帮你盯着呢！'); };
+    paint();
+  }
+
+  /* 挂载：轮询等待 DOM 就绪 */
+  var timer=setInterval(function(){ if(build()) clearInterval(timer); },300);
+  setTimeout(function(){ clearInterval(timer); },30000);
+  window.MX_ASSIST={ open:openAssistant };
+})();
+</script>
+
 </body>
 </html>
