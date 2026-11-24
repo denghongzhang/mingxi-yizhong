@@ -14930,5 +14930,87 @@ window.MX_VER='176';
 })();
 </script>
 
+<!-- v178 · 📖简介面板新增「游戏简介 / 本关校史」切换：固定展示整体介绍（可朗读），原有每关史料简介保留 -->
+<style>
+.mx178-tabs{display:flex;gap:8px;margin:2px 0 12px;justify-content:center;}
+.mx178-tab{flex:1;max-width:170px;padding:7px 8px;border:1px solid #cbd9b6;border-radius:10px;background:#f6f9ef;color:#3c6a46;font-size:13px;font-weight:700;cursor:pointer;transition:.18s;}
+.mx178-tab.on{background:linear-gradient(135deg,#e7f2d2,#d8e9bd);border-color:#8fae6e;color:#1e4a2c;box-shadow:0 2px 8px rgba(70,110,50,.16);}
+.mx178-gi{display:none;margin:0 0 6px;padding:16px 18px;border-radius:14px;
+  background:linear-gradient(135deg,#fffdf4,#f3f8e8);border:2px solid #d3dfb6;
+  box-shadow:inset 0 0 0 4px #fffdf4,0 3px 12px rgba(50,85,40,.10);}
+.mx178-gi.show{display:block;}
+.mx178-gi .mx178-q{font-family:serif;font-size:16px;line-height:2;color:#234d2e;letter-spacing:.5px;text-indent:2em;text-align:justify;}
+.mx178-gi .mx178-sign{display:block;margin-top:10px;text-align:right;font-family:serif;font-size:14px;color:#7a9a5e;}
+.mx178-gi .mx178-read{margin-top:12px;width:100%;padding:9px;border:none;border-radius:10px;cursor:pointer;
+  background:linear-gradient(135deg,#5a8a4a,#3f6b32);color:#fff;font-size:14px;font-weight:700;box-shadow:0 3px 10px rgba(50,90,35,.25);}
+#ovIntro.mx178-mode .intro-text,#ovIntro.mx178-mode .tag-row,#ovIntro.mx178-mode .note-text,#ovIntro.mx178-mode .intro-src,#ovIntro.mx178-mode .intro-tr,#ovIntro.mx178-mode .voice-row,#ovIntro.mx178-mode .lang-row{display:none!important;}
+</style>
+<script>
+(function(){
+  var TEXT='百年明中，一脉书香。校史连连看把老校舍、恩师、同窗与明溪山水封进卡片，轻点配对，往事重现。闯关积分，抚育红豆杉长成明溪杉王；还能走进洞天福地耕读养生，挑战飞机大战、掼蛋等小游戏。这里不只有游戏，更是一封写给青春的明信片——献给每一位走过明中的人。';
+  var built=false, mode='game', hooked=false;
+  function sayGame(){
+    try{ if(typeof speakTTS==='function') speakTTS(TEXT,'female');
+         else if(window.speakTTS) window.speakTTS(TEXT,'female'); }catch(e){}
+  }
+  function setMode(m){
+    mode=m;
+    var ov=document.getElementById('ovIntro'); if(!ov) return;
+    var g=document.getElementById('mx178GameIntro');
+    var tg=document.getElementById('mx178TabGame'), tl=document.getElementById('mx178TabLevel');
+    if(m==='game'){
+      ov.classList.add('mx178-mode');
+      if(g) g.classList.add('show');
+      if(tg) tg.classList.add('on'); if(tl) tl.classList.remove('on');
+      try{ stopVoice(); }catch(e){}
+      if(ov.classList.contains('show')) sayGame();
+    }else{
+      ov.classList.remove('mx178-mode');
+      if(g) g.classList.remove('show');
+      if(tl) tl.classList.add('on'); if(tg) tg.classList.remove('on');
+      try{
+        if(typeof voiceOn!=='undefined' && voiceOn && typeof LEVELS!=='undefined' && typeof curIdx!=='undefined'){
+          var lv=LEVELS[curIdx];
+          if(typeof speakVoice==='function') speakVoice(lv.name+'。'+lv.intro,'female',(typeof clipKeyFor==='function')?clipKeyFor(lv,'female'):undefined);
+        }
+      }catch(e){}
+    }
+  }
+  function build(){
+    if(built) return true;
+    var ov=document.getElementById('ovIntro'); if(!ov) return false;
+    var panel=ov.querySelector('.panel'); if(!panel) return false;
+    var h2=document.getElementById('introTitle'); if(!h2) return false;
+
+    var tabs=document.createElement('div'); tabs.className='mx178-tabs'; tabs.id='mx178Tabs';
+    tabs.innerHTML='<button class="mx178-tab on" id="mx178TabGame" type="button">🎮 游戏简介</button>'+
+                   '<button class="mx178-tab" id="mx178TabLevel" type="button">📜 本关校史</button>';
+    h2.parentNode.insertBefore(tabs,h2.nextSibling);
+
+    var gi=document.createElement('div'); gi.className='mx178-gi show'; gi.id='mx178GameIntro';
+    gi.innerHTML='<div class="mx178-q">'+TEXT+'</div>'+
+                 '<span class="mx178-sign">—— 献给每一位走过明中的人</span>'+
+                 '<button class="mx178-read" id="mx178Read" type="button">🎙 女声朗读简介</button>';
+    panel.insertBefore(gi, tabs.nextSibling);
+
+    document.getElementById('mx178TabGame').onclick=function(){ setMode('game'); };
+    document.getElementById('mx178TabLevel').onclick=function(){ setMode('level'); };
+    document.getElementById('mx178Read').onclick=function(e){ e.stopPropagation(); sayGame(); };
+
+    if(!hooked && typeof openIntro==='function'){
+      var orig=openIntro;
+      window.openIntro=function(){
+        orig();
+        setTimeout(function(){ if(mode==='game'){ try{stopVoice();}catch(e){}; sayGame(); } },80);
+      };
+      hooked=true;
+    }
+    built=true; setMode('game'); return true;
+  }
+  var timer=setInterval(function(){ if(build()) clearInterval(timer); },250);
+  setTimeout(function(){ clearInterval(timer); },20000);
+})();
+</script>
+
 </body>
 </html>
