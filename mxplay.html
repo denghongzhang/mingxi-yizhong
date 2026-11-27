@@ -12630,7 +12630,9 @@ header > *, .toolbar > *, .mx-gz > *:not(.mx-gz-fold):not(.mx-gz-open){ position
 
   /* 增强全局 speakTTS：设备 TTS 无中文包时，改走在线中文音频（微信可靠） */
   window.speakTTS = function(text, gender){
-    text = String(text==null?'':text).trim(); if(!text) return;
+    text = String(text==null?'':text).trim();
+    /* v183：空文本=停止指令（v180 🔊键二次点击走此路径），必须真正停掉在线音频，不能静默 return */
+    if(!text){ try{ stopNetAudio(); }catch(e){} return; }
     gender = gender||'female';
     try{ stopNetAudio(); }catch(e){}
     if(hasZhVoice() && __origSpeakTTS){
