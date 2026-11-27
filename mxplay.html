@@ -15955,5 +15955,500 @@ window.MX_LITE.openMap=openWorldMap;
 </script>
 <!-- ============ v184 END ============ -->
 
+<!-- ============ v185 BEGIN: 巡游杉杉 + 主动对话 + 工作助理 ============ -->
+<style id="mx185css">
+/* ===== 巡游杉杉浮层 ===== */
+#mxRoam{position:fixed; z-index:118; left:0; top:0; width:88px; height:88px;
+  touch-action:none; user-select:none; -webkit-user-select:none; will-change:transform;}
+#mxRoam.roaming{transition:none;}
+#mxRoam .rm-body{position:absolute; inset:0; cursor:grab; filter:drop-shadow(0 6px 10px rgba(30,70,40,.35));
+  animation:mx185Idle 3.2s ease-in-out infinite;}
+#mxRoam.dragging .rm-body{cursor:grabbing; animation:none;}
+@keyframes mx185Idle{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-7px) rotate(2deg)}}
+#mxRoam .rm-body svg{width:100%; height:100%; display:block; pointer-events:none;}
+#mxRoam .rm-aura{position:absolute; inset:-14%; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle,rgba(255,214,90,.34),rgba(120,200,120,.12) 55%,transparent 72%);
+  animation:mx185Aura 3s ease-in-out infinite;}
+@keyframes mx185Aura{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.12);opacity:1}}
+/* 缩放控件 */
+#mxRoam .rm-ctrl{position:absolute; top:-10px; right:-10px; display:flex; flex-direction:column; gap:3px; opacity:.92;}
+#mxRoam .rm-ctrl button{width:24px; height:24px; border-radius:50%; border:1.5px solid #fff;
+  background:linear-gradient(135deg,#4a9a5c,#2c6b3a); color:#fff; font-size:15px; font-weight:900;
+  line-height:1; cursor:pointer; box-shadow:0 2px 6px rgba(30,70,40,.35); padding:0;}
+#mxRoam .rm-ctrl button:active{transform:scale(.88);}
+/* 等级徽标 */
+#mxRoam .rm-lv{position:absolute; bottom:-4px; left:50%; transform:translateX(-50%);
+  font-size:9px; font-weight:900; color:#fff; background:linear-gradient(135deg,#c0952f,#8a6a24);
+  padding:1px 7px; border-radius:8px; white-space:nowrap; border:1px solid #fff3c0; pointer-events:none;}
+/* 主动对话气泡 */
+#mxRoam .rm-bubble{position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%) translateY(6px);
+  min-width:150px; max-width:230px; background:#fffdf4; border:2px solid #b89b6e; border-radius:14px;
+  padding:8px 10px; font-size:12px; font-weight:700; color:#5e4a24; line-height:1.5;
+  box-shadow:0 6px 18px rgba(60,45,20,.25); opacity:0; pointer-events:none; transition:.28s; z-index:3;}
+#mxRoam .rm-bubble::after{content:''; position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
+  border:8px solid transparent; border-top-color:#b89b6e;}
+#mxRoam .rm-bubble.show{opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto;}
+#mxRoam .rm-bubble .rm-line{padding-right:30px;}
+#mxRoam .rm-bubble .rm-spk{position:absolute; right:6px; bottom:6px; width:22px; height:22px; border-radius:50%;
+  border:1px solid #9dbd74; background:#eef4e2; color:#3f6b32; font-size:11px; cursor:pointer; padding:0;}
+/* 提示条 */
+.rm-hint{position:fixed; z-index:119; background:rgba(28,52,34,.94); color:#fff; font-size:11px;
+  padding:6px 12px; border-radius:20px; pointer-events:none; opacity:0; transition:.3s; white-space:nowrap;}
+
+/* ===== 工作助理面板 ===== */
+#ovWork{z-index:121;}
+#ovWork .panel{max-width:620px; max-height:88vh; overflow-y:auto; padding:0 0 14px;}
+.wk-head{position:sticky; top:0; z-index:2; padding:14px 16px 12px; text-align:center;
+  background:linear-gradient(135deg,#eaf0fa,#dbe6f7); border-bottom:2px solid #b9cce6; border-radius:12px 12px 0 0;}
+.wk-head h2{margin:0; font-family:serif; font-size:20px; color:#28456e;}
+.wk-head .wk-sub{font-size:11px; color:#58729a; margin-top:2px;}
+.wk-mascot{font-size:32px; display:inline-block; vertical-align:middle; margin-right:6px; animation:mx185Float 3s ease-in-out infinite;}
+@keyframes mx185Float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.wk-tabs{display:flex; gap:6px; padding:10px 14px 4px;}
+.wk-tab{flex:1; padding:8px; border:2px solid #c3d4ea; border-radius:10px; background:#f4f8fd;
+  font-size:13px; font-weight:800; color:#3a5a86; cursor:pointer; transition:.15s;}
+.wk-tab.on{background:linear-gradient(135deg,#4a72ad,#2e5288); color:#fff; border-color:#2e5288;}
+.wk-view{display:none; padding:6px 14px;}
+.wk-view.on{display:block;}
+.wk-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+@media(max-width:420px){.wk-grid{grid-template-columns:1fr;}}
+.wk-card{background:linear-gradient(135deg,#fffef9,#f4f8fd); border:2px solid #d3dfef; border-radius:14px;
+  padding:11px 12px; box-shadow:0 2px 8px rgba(50,80,130,.08); min-height:92px;}
+.wk-card .wk-ct{font-size:15px; font-weight:800; color:#2c4a76; font-family:serif; margin-bottom:6px; display:flex; align-items:center; gap:6px;}
+.wk-card .wk-ct .ic{font-size:19px;}
+.wk-card .wk-ch{font-size:12.5px; color:#45628a; line-height:1.65; min-height:32px;}
+.wk-btn{display:inline-block; margin:6px 4px 0 0; padding:6px 12px; border:none; border-radius:9px; cursor:pointer;
+  background:linear-gradient(135deg,#557bb4,#375e94); color:#fff; font-size:12px; font-weight:700; box-shadow:0 2px 6px rgba(45,80,130,.2);}
+.wk-btn.ghost{background:#edf3fb; color:#375e94; box-shadow:none; border:1px solid #b9cce6;}
+.wk-btn.sm{padding:4px 9px; font-size:11px;}
+.wk-input{width:100%; box-sizing:border-box; margin-top:5px; padding:7px 9px; border:1px solid #bfd0e6; border-radius:9px;
+  font-size:13px; color:#2f4568; background:#fffef9; outline:none;}
+.wk-input:focus{border-color:#6f95c8;}
+.wk-quote{font-family:serif; font-size:13.5px; line-height:1.8; color:#2f4a72; background:#f0f5fb;
+  border-left:3px solid #6f95c8; padding:7px 10px; border-radius:0 8px 8px 0; margin-top:4px;}
+.wk-row{display:flex; gap:5px; align-items:center;}
+.wk-row .wk-input{flex:1; margin-top:0;}
+.wk-todos{margin-top:6px; max-height:150px; overflow-y:auto;}
+.wk-todo{display:flex; align-items:center; gap:7px; padding:4px 2px; font-size:12.5px; color:#33517f; border-bottom:1px dashed #dae4f0;}
+.wk-todo .wk-del{margin-left:auto; cursor:pointer; color:#b56a5a; font-size:14px;}
+.wk-close{display:block; margin:12px auto 0; padding:9px 34px; border:none; border-radius:10px; cursor:pointer;
+  background:linear-gradient(135deg,#557bb4,#375e94); color:#fff; font-size:14px; font-weight:800;}
+.wk-note{font-size:10.5px; color:#8a97ab; text-align:center; margin-top:8px;}
+</style>
+
+<!-- 巡游杉杉浮层（由 JS 创建并定位） -->
+<div class="rm-hint" id="rmHint"></div>
+
+<!-- 工作助理面板（由 JS 构建内容） -->
+<div class="overlay" id="ovWork"><div class="panel">
+  <div class="wk-head"><h2><span class="wk-mascot">💼</span>杉杉工作助理</h2>
+    <div class="wk-sub">专注 · 高效 · 有条理 · 明溪杉王助你职场顺遂</div></div>
+  <div class="wk-tabs">
+    <div class="wk-tab on" data-v="tools">🛠 效率工具</div>
+    <div class="wk-tab" data-v="growth">📈 职场成长</div>
+  </div>
+  <div class="wk-view on" id="wkViewTools"></div>
+  <div class="wk-view" id="wkViewGrowth"></div>
+  <button class="wk-close" id="wkClose">收起助理</button>
+  <div class="wk-note">数据仅保存在本机 · 杉杉陪你认真工作每一天 🌿</div>
+</div></div>
+
+<script id="mx185js">
+(function(){
+'use strict';
+function $(s,r){ return (r||document).querySelector(s); }
+function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function say(t){ try{ if(typeof window.speakTTS==='function') window.speakTTS(t,'female'); }catch(e){} }
+function toast(m){ try{ if(window.showToast) window.showToast(m); }catch(e){} }
+function ls(k,d){ try{ var v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }
+function ss(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+
+/* ==================== 一、巡游杉杉 ==================== */
+var RM_KEY='mx185_roam';
+var roam=ls(RM_KEY,{x:null,y:null,scale:1});
+var el=null, body=null, bubble=null, hint=null;
+var dragging=false, dragMoved=false, startX=0, startY=0, origX=0, origY=0;
+var lastTap=0, tapTimer=null;
+
+function curLevelIdx(){
+  try{ var st=window.MX_PET&&window.MX_PET.state?window.MX_PET.state():null;
+    if(st&&typeof st.idx==='number') return st.idx;
+    var L=(window.MX_PET&&window.MX_PET.levels)||[]; var sc=window.MX_PET&&window.MX_PET.energy?window.MX_PET.energy():0;
+    for(var i=0;i<L.length;i++) if(sc>=L[i].base) return i;
+  }catch(e){}
+  return 0;
+}
+function applyTransform(){
+  if(!el) return;
+  el.style.transform='translate3d('+roam.x+'px,'+roam.y+'px,0) scale('+roam.scale+')';
+  el.style.transformOrigin='top left';
+}
+function clampPos(){
+  var w=Math.round(88*roam.scale), h=Math.round(88*roam.scale);
+  var maxX=Math.max(0,window.innerWidth-w-4), maxY=Math.max(0,window.innerHeight-h-4);
+  roam.x=Math.min(maxX,Math.max(0,roam.x));
+  roam.y=Math.min(maxY,Math.max(0,roam.y));
+}
+function defaultPos(){
+  var w=Math.round(88*roam.scale), h=Math.round(88*roam.scale);
+  roam.x=Math.max(0,window.innerWidth-w-14);
+  /* 避开底部矿区面板（约176px）与工具栏，留足空间让杉杉与气泡完整可见 */
+  var bottomReserve=Math.min(230,Math.max(120,window.innerHeight*0.24));
+  roam.y=Math.max(0,window.innerHeight-h-bottomReserve);
+}
+function persist(){ ss(RM_KEY,roam); }
+
+function buildRoam(){
+  if(document.getElementById('mxRoam')) return;
+  el=document.createElement('div'); el.id='mxRoam'; el.className='roaming';
+  el.innerHTML='<div class="rm-aura"></div><div class="rm-body"></div>'
+    +'<div class="rm-ctrl"><button id="rmZoomIn" title="放大">＋</button><button id="rmZoomOut" title="缩小">－</button></div>'
+    +'<div class="rm-lv" id="rmLv"></div>'
+    +'<div class="rm-bubble" id="rmBubble"><span class="rm-line" id="rmLine"></span><button class="rm-spk" id="rmSpk" title="朗读">🔊</button></div>';
+  document.body.appendChild(el);
+  body=$('.rm-body',el); bubble=$('#rmBubble'); hint=$('#rmHint');
+  renderMascot();
+  if(roam.x==null||roam.y==null) defaultPos();
+  clampPos(); applyTransform(); persist();
+
+  /* --- 拖拽（pointer 事件，兼容触摸与鼠标） --- */
+  el.addEventListener('pointerdown',function(e){
+    if(e.target.closest('.rm-ctrl')||e.target.closest('.rm-bubble')) return;
+    dragging=true; dragMoved=false;
+    startX=e.clientX; startY=e.clientY; origX=roam.x; origY=roam.y;
+    el.classList.add('dragging');
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    e.preventDefault();
+  });
+  el.addEventListener('pointermove',function(e){
+    if(!dragging) return;
+    var dx=e.clientX-startX, dy=e.clientY-startY;
+    if(Math.abs(dx)+Math.abs(dy)>6) dragMoved=true;
+    roam.x=origX+dx; roam.y=origY+dy; clampPos(); applyTransform();
+    e.preventDefault();
+  });
+  function endDrag(e){
+    if(!dragging) return;
+    dragging=false; el.classList.remove('dragging');
+    if(dragMoved){ persist(); showHint('杉杉换个位置陪你～ 📍'); }
+    try{ el.releasePointerCapture(e.pointerId); }catch(err){}
+  }
+  el.addEventListener('pointerup',endDrag);
+  el.addEventListener('pointercancel',endDrag);
+
+  /* --- 连续点击（双击 400ms 内）打开生活助理 --- */
+  el.addEventListener('click',function(e){
+    if(e.target.closest('.rm-ctrl')||e.target.closest('.rm-bubble')) return;
+    if(dragMoved){ dragMoved=false; return; }
+    var now=Date.now();
+    if(now-lastTap<400){
+      clearTimeout(tapTimer); lastTap=0;
+      openAssistantHub();
+      popupBubble(pickLine('tap'),true);
+    } else {
+      lastTap=now;
+      tapTimer=setTimeout(function(){ lastTap=0; popupBubble(pickLine('single'),true); },420);
+    }
+  });
+
+  /* --- 缩放 --- */
+  $('#rmZoomIn').addEventListener('click',function(e){ e.stopPropagation(); setScale(roam.scale+0.15); });
+  $('#rmZoomOut').addEventListener('click',function(e){ e.stopPropagation(); setScale(roam.scale-0.15); });
+  $('#rmSpk').addEventListener('click',function(e){ e.stopPropagation(); var t=$('#rmLine').textContent; if(t) say(t); });
+
+  window.addEventListener('resize',function(){ clampPos(); applyTransform(); });
+}
+function setScale(v){
+  roam.scale=Math.max(0.65,Math.min(1.7,Math.round(v*100)/100));
+  clampPos(); applyTransform(); persist();
+  showHint('杉杉大小 '+Math.round(roam.scale*100)+'%');
+}
+function renderMascot(){
+  if(!el) return;
+  body.innerHTML=(window.MX_PET&&window.MX_PET.svg)?window.MX_PET.svg(curLevelIdx()):'<svg viewBox="0 0 100 90"><text x="50" y="55" font-size="50" text-anchor="middle">🌲</text></svg>';
+  var L=(window.MX_PET&&window.MX_PET.levels)||[]; var idx=curLevelIdx();
+  $('#rmLv').textContent='Lv.'+(idx+1)+' '+(L[idx]&&L[idx].name?L[idx].name:'杉杉');
+}
+
+/* ==================== 二、主动互动对话 ==================== */
+var LINES={
+  work:['工作再忙，也要记得站起来伸个懒腰呀～','这个方案你已经想得够久了，先动手做一版吧！💪','喝口水，深呼吸，杉杉陪你一起攻坚。','一次只专注一件事，效率会悄悄翻倍哦。','别怕改稿，好作品都是改出来的。','今天完成一点点，就比昨天更强一点点。'],
+  life:['君子峰的云海我天天看，比你们城里人刷的朋友圈还仙。☁️','记得吃饭呀，别让胃等太久～','明溪的擂茶，喝一口就想家了。','天凉了记得加衣，杉杉可不想你感冒。','早睡早起，红豆杉都比你作息规律啦 😄','今天有想我吗？杉杉一直在这儿呢～'],
+  game:['来玩一局连连看？杉杉在棋盘上等你哦！','通关就能点亮你的城市，快去试试～','小游戏积分可以给杉杉充能，我超喜欢的 ⚡','校史里藏着好多明溪故事，边玩边学最有趣。','连对越多，杉杉越开心！','要不要切到「10关速通」，挑战一下？'],
+  tap:['嗯？你叫我呀～','我在呢，说吧！','被你找到啦 😄','杉杉随时待命！'],
+  single:['（歪头）有事找我双击我就行～','轻轻一点是问候，双击是召唤哦 ✦']
+};
+function pickLine(kind){
+  var a=LINES[kind]||LINES.life; return a[Math.floor(Math.random()*a.length)];
+}
+var bubbleTimer=null;
+function popupBubble(text,hold){
+  if(!bubble) return;
+  $('#rmLine').textContent=text;
+  bubble.classList.add('show');
+  clearTimeout(bubbleTimer);
+  bubbleTimer=setTimeout(function(){ bubble.classList.remove('show'); },hold?5200:6800);
+}
+function showHint(t){
+  if(!hint) return;
+  hint.textContent=t; hint.style.left=Math.max(8,Math.min(window.innerWidth-180,roam.x-30))+'px';
+  hint.style.top=Math.max(8,roam.y-30)+'px';
+  hint.style.opacity='1';
+  clearTimeout(hint._t); hint._t=setTimeout(function(){ hint.style.opacity='0'; },1800);
+}
+function startChatter(){
+  /* 主动对话：每 50~85 秒随机说一句，避免打扰 */
+  function schedule(){
+    var delay=(50+Math.random()*35)*1000;
+    setTimeout(function(){
+      if(document.hidden||!el) { schedule(); return; }
+      var k=Math.random()<0.4?'work':(Math.random()<0.5?'life':'game');
+      popupBubble(pickLine(k),false);
+      schedule();
+    },delay);
+  }
+  schedule();
+}
+
+/* ==================== 三、打开助理（生活 / 工作） ==================== */
+function openAssistantHub(){
+  /* 优先打开生活助理；工作助理入口在生活助理里以标签/按钮提供 */
+  try{ if(window.MX_ASSIST&&window.MX_ASSIST.open){ window.MX_ASSIST.open(); return; } }catch(e){}
+  try{ openOv('ovAsst'); }catch(e){ var o=$('#ovAsst'); if(o) o.classList.add('show'); }
+}
+function openWork(){
+  try{ closeOv('ovAsst'); }catch(e){ var a=$('#ovAsst'); if(a) a.classList.remove('show'); }
+  try{ openOv('ovWork'); }catch(e){ var w=$('#ovWork'); if(w) w.classList.remove('show'); }
+}
+
+/* ==================== 四、工作助理功能 ==================== */
+var WK='mx185wk_';
+function wl(k,d){ return ls(WK+k,d); }
+function ws(k,v){ ss(WK+k,v); }
+function wesc(s){ return esc(s); }
+
+var TIPS=['把大任务拆成 25 分钟能完成的小块，立刻开始第一块。','先做重要且不紧急的事，别让待办变成救火。','每天留 10 分钟复盘，比多加班两小时更有用。','会议能站着开就站着开，效率更高、时间更短。','关掉通知，专注 25 分钟，胜过刷一下午手机。','先完成，再完美——初稿的价值远大于空想。','把最难的事放在你精力最好的时段。','下班前列明天的三件事，明天不再迷茫。'];
+var QUOTES=['今天的努力，是明天的底气。','把复杂留给自己，把简单交给结果。','专注当下这一件事，就是最好的时间管理。','进度比完美更重要，先迈出第一步。','7030 法则：七分准备，三分临场，够了就上。','别让「再等等」偷走你的机会。','工作可以忙，心不能乱。','你解决过的问题，都会成为你的护城河。'];
+
+function buildWork(){
+  var vt=$('#wkViewTools'), vg=$('#wkViewGrowth');
+  if(!vt||!vg) return;
+  /* 效率工具视图 */
+  vt.innerHTML='<div class="wk-grid">'
+    +wkCard('wtodo','✅','工作任务','把任务交给杉杉，逐条攻克')
+    +wkCard('wfocus','⏱️','专注计时','番茄工作法，专注 25 分钟')
+    +wkCard('wmeeting','📝','会议纪要','快速记录要点与待跟进')
+    +wkCard('wemail','✉️','措辞助手','帮你把话说得体又高效')
+    +wkCard('wdecide','🎯','任务排序','四象限法，先做重要的事')
+    +wkCard('wtip','💡','效率贴士','每天一条，工作更顺手')
+    +'</div>';
+  /* 职场成长视图 */
+  vg.innerHTML='<div class="wk-grid">'
+    +wkCard('wquote','📖','职场箴言','一句鼓励，元气满满上班')
+    +wkCard('wreview','🔍','每日复盘','记录今天的三点收获')
+    +wkCard('wskill','📚','技能清单','沉淀你的能力清单')
+    +wkCard('wcheer','🎈','工作打气','累了就来听杉杉说')
+    +wkCard('wwin','🏆','成就墙','记录每一个小胜利')
+    +wkCard('wword','🧭','职场心法','一些受用的处世之道')
+    +'</div>';
+
+  initWTodo(); initWFocus(); initWMeeting(); initWEmail(); initWDecide(); initWTip();
+  initWQuote(); initWReview(); initWSkill(); initWCheer(); initWW(); initWWord();
+}
+function wkCard(id,ic,title,sub){
+  return '<div class="wk-card"><div class="wk-ct"><span class="ic">'+ic+'</span>'+title+'</div>'
+    +'<div class="wk-ch" id="wk_'+id+'">'+sub+'</div><div id="wk_'+id+'_x"></div></div>';
+}
+
+/* 工作任务 */
+function initWTodo(){
+  var list=wl('todos',[]), box=$('#wk_wtodo'), x=$('#wk_wtodo_x');
+  function paint(){
+    var h='<div class="wk-todos">';
+    list.forEach(function(t,i){ h+='<div class="wk-todo"><span>'+(t.done?'✅':'⬜')+'</span><span style="'+(t.done?'text-decoration:line-through;color:#9aa':'')+'">'+wesc(t.n)+'</span><span class="wk-del" data-i="'+i+'">✕</span></div>'; });
+    if(!list.length) h+='<div style="font-size:12px;color:#8a97ab">还没有任务，在下面添加吧～</div>';
+    h+='</div>'; box.innerHTML=h;
+    $$('.wk-del',box).forEach(function(b){ b.onclick=function(){ list.splice(+b.dataset.i,1); ws('todos',list); paint(); }; });
+    $$('.wk-todo',box).forEach(function(row,i){ row.style.cursor='pointer'; row.onclick=function(e){ if(e.target.classList.contains('wk-del'))return; list[i].done=!list[i].done; ws('todos',list); paint(); }; });
+  }
+  x.innerHTML='<div class="wk-row"><input class="wk-input" id="wkTodoIn" placeholder="输入工作任务…"><button class="wk-btn sm" id="wkTodoAdd">+</button></div>';
+  $('#wkTodoAdd').onclick=function(){ var n=$('#wkTodoIn').value.trim(); if(!n)return; list.push({n:n,done:false}); ws('todos',list); $('#wkTodoIn').value=''; paint(); say('记下任务：'+n+'，杉杉陪你一起完成！'); };
+  paint();
+}
+/* 专注计时（番茄钟） */
+function initWFocus(){
+  var box=$('#wk_wfocus'), x=$('#wk_wfocus_x'), st=wl('focus',{end:0});
+  var tick=null;
+  function paint(){
+    var left=0;
+    if(st.end>Date.now()) left=Math.ceil((st.end-Date.now())/1000);
+    else if(st.end){ box.textContent='本轮专注完成！休息一下吧 🍅'; st={end:0}; ws('focus',st); return; }
+    box.innerHTML=left?('<div style="text-align:center"><div class="wk-clock">'+Math.floor(left/60)+':'+('0'+left%60).slice(-2)+'</div><div style="font-size:11px;color:#58729a">专注中，别分心哦～</div></div>'):'25 分钟专注，帮你进入心流状态。';
+  }
+  x.innerHTML='<button class="wk-btn" id="wkFocusGo">🍅 开始专注</button> <button class="wk-btn ghost sm" id="wkFocusReset">重置</button>';
+  $('#wkFocusGo').onclick=function(){ st={end:Date.now()+25*60*1000}; ws('focus',st); say('专注开始！25 分钟，杉杉为你计时。'); clearInterval(tick); tick=setInterval(paint,1000); paint(); };
+  $('#wkFocusReset').onclick=function(){ st={end:0}; ws('focus',st); clearInterval(tick); paint(); };
+  if(st.end>Date.now()) tick=setInterval(paint,1000);
+  paint();
+}
+/* 会议纪要 */
+function initWMeeting(){
+  var box=$('#wk_wmeeting'), x=$('#wk_wmeeting_x');
+  box.innerHTML='<textarea class="wk-input" id="wkMeetTxt" rows="3" placeholder="输入会议要点，一行一条…">'+wesc(wl('meet',''))+'</textarea>';
+  x.innerHTML='<button class="wk-btn sm" id="wkMeetSave">💾 保存纪要</button> <button class="wk-btn ghost sm" id="wkMeetSay">🎙 朗读</button>';
+  $('#wkMeetSave').onclick=function(){ ws('meet',$('#wkMeetTxt').value); say('会议纪要已保存，杉杉帮你记着呢！'); };
+  $('#wkMeetSay').onclick=function(){ say($('#wkMeetTxt').value||'还没有会议纪要。'); };
+}
+/* 措辞助手 */
+function initWEmail(){
+  var box=$('#wk_wemail'), x=$('#wk_wemail_x');
+  box.textContent='把想说的话写成草稿，杉杉帮你润色语气。';
+  x.innerHTML='<input class="wk-input" id="wkDraftIn" placeholder="写下草稿，如：这个方案要改"><button class="wk-btn sm" id="wkDraftGo">✨ 润色</button>';
+  $('#wkDraftGo').onclick=function(){
+    var raw=$('#wkDraftIn').value.trim(); if(!raw)return;
+    var polite='您好，'+raw+'，辛苦您了！方便的话麻烦您确认一下，谢谢～';
+    box.innerHTML='<div class="wk-quote">'+wesc(polite)+'</div>'; say(polite);
+  };
+}
+/* 任务排序（四象限） */
+function initWDecide(){
+  var box=$('#wk_wdecide'), x=$('#wk_wdecide_x');
+  box.textContent='任务太多不知道先做哪个？把任务按「重要 / 紧急」分一下，先做重要且紧急的。';
+  x.innerHTML='<button class="wk-btn" id="wkQuadGo">🎯 生成四象限</button>';
+  $('#wkQuadGo').onclick=function(){
+    var list=wl('todos',[]);
+    if(!list.length){ box.innerHTML='<div style="color:#8a97ab;font-size:12px">先在「工作任务」里添加任务吧～</div>'; return; }
+    var names=list.filter(function(t){return !t.done;}).map(function(t){return t.n;});
+    box.innerHTML='<div class="wk-quote"><b>①重要且紧急：</b>'+wesc(names[0]||'—')+'<br><b>②重要不紧急：</b>'+wesc(names[1]||'—')+'<br><b>③紧急不重要：</b>'+wesc(names[2]||'—')+'<br><b>④不重要不紧急：</b>'+wesc(names[3]||'—')+'</div>';
+    say('先做重要且紧急的事，其他稍后安排，别急。');
+  };
+}
+/* 效率贴士 */
+function initWTip(){
+  var box=$('#wk_wtip'), x=$('#wk_wtip_x');
+  var idx=wl('tipIdx',0);
+  function paint(){ box.className='wk-quote'; box.textContent=TIPS[idx%TIPS.length]; }
+  x.innerHTML='<button class="wk-btn ghost sm" id="wkTipNext">换一条</button> <button class="wk-btn ghost sm" id="wkTipSay">🎙</button>';
+  $('#wkTipNext').onclick=function(){ idx=(idx+1)%TIPS.length; ws('tipIdx',idx); paint(); say(TIPS[idx]); };
+  $('#wkTipSay').onclick=function(){ say(TIPS[idx%TIPS.length]); };
+  paint();
+}
+/* 职场箴言 */
+function initWQuote(){
+  var box=$('#wk_wquote'), x=$('#wk_wquote_x');
+  var d=today(), idx=0; for(var i=0;i<d.length;i++) idx+=d.charCodeAt(i); idx=idx%QUOTES.length;
+  box.className='wk-quote'; box.textContent='“'+QUOTES[idx]+'”';
+  x.innerHTML='<button class="wk-btn ghost sm" id="wkQuoteSay">🎙 读给我听</button>';
+  $('#wkQuoteSay').onclick=function(){ say(QUOTES[idx]); };
+}
+/* 每日复盘 */
+function initWReview(){
+  var box=$('#wk_wreview'), x=$('#wk_wreview_x');
+  var key='review_'+today();
+  box.innerHTML='<textarea class="wk-input" id="wkRevTxt" rows="3" placeholder="今天的三点收获 / 待改进…">'+wesc(wl(key,''))+'</textarea>';
+  x.innerHTML='<button class="wk-btn sm" id="wkRevSave">💾 保存今日复盘</button>';
+  $('#wkRevSave').onclick=function(){ ws(key,$('#wkRevTxt').value); say('复盘已保存，每天进步一点点！'); };
+}
+/* 技能清单 */
+function initWSkill(){
+  var box=$('#wk_wskill'), x=$('#wk_wskill_x');
+  var list=wl('skills',[]);
+  function paint(){
+    box.innerHTML=list.length?('<div class="wk-quote">'+list.map(function(s){return '✦ '+wesc(s);}).join('<br>')+'</div>'):'把掌握的技能记下来，慢慢就是你的能力地图。';
+  }
+  x.innerHTML='<div class="wk-row"><input class="wk-input" id="wkSkillIn" placeholder="如：数据分析"><button class="wk-btn sm" id="wkSkillAdd">+</button></div>';
+  $('#wkSkillAdd').onclick=function(){ var n=$('#wkSkillIn').value.trim(); if(!n)return; list.push(n); ws('skills',list); $('#wkSkillIn').value=''; paint(); };
+  paint();
+}
+/* 工作打气 */
+function initWCheer(){
+  var box=$('#wk_wcheer'), x=$('#wk_wcheer_x');
+  box.textContent='工作压力大？点一下，听杉杉给你打打气～';
+  x.innerHTML='<button class="wk-btn" id="wkCheerGo">🎈 给我打气</button>';
+  $('#wkCheerGo').onclick=function(){ var t=['你已经很棒了，别给自己太大压力！','一次做不好没关系，重要的是你还在坚持。','杉杉看好你，这份工作你完全能胜任！','深呼吸，把难题拆小，一步步来。','下班后好好休息，你值得的！'][Math.floor(Math.random()*5)]; box.innerHTML='<div class="wk-quote">'+t+'</div>'; say(t); };
+}
+/* 成就墙 */
+function initWW(){
+  var box=$('#wk_wwin'), x=$('#wk_wwin_x');
+  var list=wl('wins',[]);
+  function paint(){
+    box.innerHTML=list.length?('<div class="wk-quote">'+list.map(function(s){return '🏆 '+wesc(s);}).join('<br>')+'</div>'):'记录每一个小胜利，他们会累积成自信。';
+  }
+  x.innerHTML='<div class="wk-row"><input class="wk-input" id="wkWinIn" placeholder="如：完成了季度汇报"><button class="wk-btn sm" id="wkWinAdd">+</button></div>';
+  $('#wkWinAdd').onclick=function(){ var n=$('#wkWinIn').value.trim(); if(!n)return; list.unshift(n); ws('wins',list.slice(0,20)); $('#wkWinIn').value=''; paint(); say('恭喜！'+n+'，杉杉为你骄傲！'); };
+  paint();
+}
+/* 职场心法 */
+function initWWord(){
+  var box=$('#wk_wword'), x=$('#wk_wword_x');
+  var arr=['先完成，再完美。','对事不对人，就事论事。','重要的事提前说，进度主动同步。','把「我不行」换成「我还没学会」。','开会前先发议程，开会后必发结论。','靠谱，是最高的职场评价。','向上管理不是拍马屁，是让关键信息流动。','留痕：重要的沟通，落在文字上。'];
+  var i=wl('wordIdx',0);
+  function paint(){ box.className='wk-quote'; box.textContent=arr[i%arr.length]; }
+  x.innerHTML='<button class="wk-btn ghost sm" id="wkWordNext">换一条</button> <button class="wk-btn ghost sm" id="wkWordSay">🎙</button>';
+  $('#wkWordNext').onclick=function(){ i=(i+1)%arr.length; ws('wordIdx',i); paint(); say(arr[i]); };
+  $('#wkWordSay').onclick=function(){ say(arr[i%arr.length]); };
+  paint();
+}
+
+/* ==================== 五、入口整合 ==================== */
+function injectEntries(){
+  /* 生活助理面板顶部加「工作助理」入口 */
+  try{
+    var ov=$('#ovAsst');
+    if(ov && !$('#mx185WorkEntry')){
+      var e=document.createElement('div'); e.id='mx185WorkEntry';
+      e.style.cssText='margin:8px 16px;padding:10px 12px;border-radius:12px;cursor:pointer;background:linear-gradient(135deg,#eaf0fa,#dbe6f7);border:2px solid #b9cce6;display:flex;align-items:center;gap:10px;';
+      e.innerHTML='<span style="font-size:24px">💼</span><span style="flex:1;text-align:left"><b style="font-size:14px;color:#28456e;font-family:serif">杉杉工作助理</b><small style="display:block;font-size:11px;color:#58729a;margin-top:2px">任务 / 专注 / 会议 / 复盘 / 效率贴士</small></span><span style="font-size:18px;color:#557bb4">›</span>';
+      e.onclick=function(ev){ ev.stopPropagation(); openWork(); };
+      var grid=$('.mx179-grid',ov); if(grid) ov.querySelector('.panel').insertBefore(e,grid);
+      else ov.querySelector('.panel').appendChild(e);
+    }
+  }catch(err){}
+  /* 工作助理 tab 切换 */
+  $$('.wk-tab').forEach(function(t){
+    t.onclick=function(){
+      $$('.wk-tab').forEach(function(x){x.classList.remove('on');}); t.classList.add('on');
+      $$('.wk-view').forEach(function(v){v.classList.remove('on');});
+      var v=$('#wkView'+(t.dataset.v==='tools'?'Tools':'Growth')); if(v) v.classList.add('on');
+    };
+  });
+  var wc=$('#wkClose'); if(wc) wc.onclick=function(){ try{closeOv('ovWork');}catch(e){ $('#ovWork').classList.remove('show'); } };
+  var wo=$('#ovWork'); if(wo) wo.addEventListener('click',function(e){ if(e.target===wo){ try{closeOv('ovWork');}catch(err){ wo.classList.remove('show'); } } });
+}
+
+/* ==================== 六、启动 ==================== */
+function boot(){
+  buildRoam();
+  buildWork();
+  injectEntries();
+  startChatter();
+  /* 首次提示 */
+  setTimeout(function(){ showHint('长按拖动杉杉 · 双击召唤助理 · ＋－缩放'); },1800);
+}
+/* 等生活助理面板构建完成后注入工作入口 */
+var tries=0;
+var wait=setInterval(function(){
+  tries++;
+  if($('#ovAsst')){ injectEntries(); clearInterval(wait); }
+  if(tries>60) clearInterval(wait);
+},500);
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+
+/* 对外接口 */
+window.MX_ROAM={
+  open:function(){ buildRoam(); },
+  assistant:openAssistantHub,
+  work:openWork,
+  chat:function(k){ popupBubble(pickLine(k||'life'),true); },
+  reset:function(){ roam={x:null,y:null,scale:1}; defaultPos(); clampPos(); applyTransform(); persist(); },
+  state:function(){ return {x:roam.x,y:roam.y,scale:roam.scale}; }
+};
+})();
+</script>
+<!-- ============ v185 END ============ -->
+
 </body>
 </html>
