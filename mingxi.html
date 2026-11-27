@@ -16450,5 +16450,80 @@ window.MX_ROAM={
 </script>
 <!-- ============ v185 END ============ -->
 
+<!-- ============ v186 BEGIN: 交互精修层（弹窗层级 / 番茄钟 / 提示条 / 定位） ============ -->
+<style id="mx186css">
+/* 1) 番茄钟倒计时大数字 */
+.wk-clock{font-family:serif; font-size:34px; font-weight:900; color:#2e5288; letter-spacing:2px;
+  line-height:1.15; text-shadow:0 1px 0 rgba(255,255,255,.9);}
+/* 2) 任意模态弹窗打开时，巡游杉杉与提示条让位，避免遮挡引导/地图/通关等面板 */
+#mxRoam,#rmHint{transition:opacity .25s ease;}
+body.mx186-modal #mxRoam{opacity:0!important; pointer-events:none!important;}
+body.mx186-modal #rmHint{display:none!important;}
+/* 3) 提示条兜底不撑破屏幕 */
+.rm-hint{max-width:calc(100vw - 16px);}
+</style>
+<script id="mx186js">
+(function(){
+'use strict';
+/* --- 1. 模态层级同步 --- */
+function modalOpen(){ return document.querySelectorAll('.overlay.show').length>0; }
+function syncModal(){
+  if(modalOpen()) document.body.classList.add('mx186-modal');
+  else document.body.classList.remove('mx186-modal');
+}
+var mo=new MutationObserver(syncModal);
+function watchOverlays(){
+  var ovs=document.querySelectorAll('.overlay');
+  for(var i=0;i<ovs.length;i++){
+    if(!ovs[i].__mx186watched){ ovs[i].__mx186watched=true; mo.observe(ovs[i],{attributes:true,attributeFilter:['class']}); }
+  }
+}
+watchOverlays();
+setTimeout(watchOverlays,1500); /* 动态创建的 ovAsst 补观察 */
+setInterval(function(){ watchOverlays(); syncModal(); },150);
+document.addEventListener('click',function(){ setTimeout(syncModal,60); },true);
+syncModal();
+
+/* --- 2. 提示条越界夹取 --- */
+var hint=document.getElementById('rmHint');
+if(hint){
+  var ho=new MutationObserver(function(){
+    if(hint.style.opacity!=='1') return;
+    var w=hint.offsetWidth||160;
+    var maxLeft=Math.max(8,window.innerWidth-w-8);
+    var cur=parseFloat(hint.style.left)||8;
+    if(cur>maxLeft) hint.style.left=maxLeft+'px';
+    var maxTop=Math.max(8,window.innerHeight-40), top=parseFloat(hint.style.top)||8;
+    if(top>maxTop) hint.style.top=maxTop+'px';
+  });
+  ho.observe(hint,{attributes:true,attributeFilter:['style']});
+  window.addEventListener('resize',function(){
+    var w=hint.offsetWidth||160;
+    if((parseFloat(hint.style.left)||0)>window.innerWidth-w-8) hint.style.left=Math.max(8,window.innerWidth-w-8)+'px';
+  });
+}
+
+/* --- 3. 自动定位：本地时区推断替换被 CORS 拦截的 ipapi.co 请求 --- */
+var _fetch=window.fetch;
+if(_fetch){
+  var TZ={'Asia/Shanghai':'Beijing','Asia/Chongqing':'Chongqing','Asia/Harbin':'Harbin',
+    'Asia/Hong_Kong':'Hong Kong','Asia/Macao':'Macao','Asia/Taipei':'Taipei',
+    'Asia/Singapore':'Singapore','Asia/Tokyo':'Tokyo','Asia/Seoul':'Seoul',
+    'America/New_York':'New York','America/Los_Angeles':'Los Angeles',
+    'Europe/London':'London','Europe/Paris':'Paris','Australia/Sydney':'Sydney'};
+  var tz=''; try{ tz=(Intl.DateTimeFormat().resolvedOptions().timeZone)||''; }catch(e){}
+  var guess=TZ[tz]||'';
+  window.fetch=function(url,opt){
+    if(typeof url==='string' && url.indexOf('ipapi.co')>=0){
+      if(!guess) return Promise.reject(new Error('no local guess'));
+      return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve({city:guess,city_name:guess});}});
+    }
+    return _fetch.apply(this,arguments);
+  };
+}
+})();
+</script>
+<!-- ============ v186 END ============ -->
+
 </body>
 </html>
