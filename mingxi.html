@@ -15589,5 +15589,371 @@ window.MX_VER='176';
 })();
 </script>
 
+<!-- ============ v184 BEGIN: 10关速通版 + 全球城市足迹 ============ -->
+<style id="mx184css">
+/* --- 模式切换按钮 --- */
+#btnLiteMode{ background:linear-gradient(135deg,#a9802f,#d9b45a); color:#fff; border-color:#8a6a24; font-weight:800; }
+#btnLiteMode.lite-on{ background:linear-gradient(135deg,#3c6e47,#6fae72); border-color:#2a5334; }
+#btnWorldMap{ background:linear-gradient(135deg,#2b6e8e,#4fa3c7); color:#fff; border-color:#1d5670; font-weight:800; }
+/* --- 城市选择面板 --- */
+#ovCityPick .panel{max-width:520px; width:96vw; max-height:92dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+.mx184-tip{font-size:12px; line-height:1.6; color:#6b5b3e; background:#fbf3e2; border:1px dashed var(--line); border-radius:10px; padding:8px 10px; margin:8px 0;}
+.city-search{width:100%; box-sizing:border-box; padding:9px 12px; font-size:15px; border:2px solid var(--line); border-radius:10px; background:#fffdf7; color:var(--ink); margin:4px 0 8px;}
+.city-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); gap:7px; max-height:46dvh; overflow-y:auto; padding:4px; margin:4px 0 10px;}
+.city-chip{position:relative; padding:9px 6px; border:2px solid var(--line); border-radius:10px; background:#fffdf7; color:var(--ink); font-size:13px; font-weight:700; cursor:pointer; text-align:center; transition:.15s;}
+.city-chip:active{transform:scale(.95);}
+.city-chip.sel{border-color:var(--red); background:#fdece9; color:var(--red); box-shadow:0 0 0 2px rgba(158,43,37,.15);}
+.city-chip.lit::after{content:'✦'; position:absolute; top:2px; right:5px; color:var(--gold); font-size:13px;}
+.city-chip .cc-n{display:block;}
+.city-chip .cc-c{display:block; font-size:10px; color:var(--gold); font-weight:600; margin-top:2px;}
+.mx184-ip{font-size:11px; color:#2a6e8e; margin:2px 0 8px; min-height:14px;}
+/* --- 世界地图面板 --- */
+#ovWorldMap .panel{max-width:960px; width:97vw; max-height:94dvh; overflow:hidden; display:flex; flex-direction:column;}
+.wm-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:6px 0 8px;}
+.wm-stat{min-width:0; background:linear-gradient(135deg,#fbf3e2,#f3e4c4); border:2px solid var(--line); border-radius:12px; padding:8px 5px; text-align:center;}
+.wm-stat b{display:block; font-size:19px; color:var(--red); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.wm-stat span{font-size:10.5px; color:#6b5b3e;}
+.wm-svg-box{position:relative; flex:1; min-height:280px; background:radial-gradient(ellipse at 50% 40%,#eaf3f7,#d7e6ee); border:2px solid var(--line); border-radius:12px; overflow:hidden;}
+#mxWorldSvg{width:100%; height:100%; display:block; touch-action:none;}
+.wm-land{fill:#b9cdae; stroke:#8fae82; stroke-width:1.1; opacity:.82;}
+.wm-grid{fill:none; stroke:#c3d4dc; stroke-width:.6; opacity:.6;}
+.wm-city{cursor:pointer;}
+.wm-city .halo{fill:#ffd75e; opacity:0;}
+.wm-city .core{fill:var(--gold); stroke:#fff; stroke-width:1.2;}
+.wm-city.lit .halo{animation:mx184pulse 2s ease-out infinite;}
+.wm-city.lit .core{fill:#e4392f; filter:drop-shadow(0 0 4px #ffcf4d);}
+@keyframes mx184pulse{0%{opacity:.7; r:5;}100%{opacity:0; r:20;}}
+.wm-city-label{font-size:11px; font-weight:800; fill:#7a2b1f; paint-order:stroke; stroke:#fff; stroke-width:2px; pointer-events:none;}
+.wm-info{font-size:12px; color:#6b5b3e; margin:6px 0; min-height:16px; text-align:center;}
+.wm-note{font-size:10.5px; color:#8a7a5c; line-height:1.5; margin-top:4px;}
+</style>
+
+<div class="overlay" id="ovCityPick">
+  <div class="panel">
+    <h2>🌍 我的城市足迹</h2>
+    <div class="mx184-tip">选择你所在的城市，玩通「10关速通版」后，这座城市就会被点亮并计数。<b>仅用于点亮足迹，不存储精确位置</b>，随时可修改或清除。</div>
+    <div class="mx184-ip" id="mxCityIp">📍 正在尝试自动定位…</div>
+    <input class="city-search" id="citySearch" type="text" placeholder="🔍 搜索城市名…" autocomplete="off" />
+    <div class="city-grid" id="cityGrid"></div>
+    <div class="btn-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="tb-btn" id="cityClear" style="flex:1;">🧹 清除足迹</button>
+      <button class="tb-btn red" id="cityConfirm" style="flex:1;">✅ 确认选择</button>
+      <button class="close" id="cityClose" style="flex:0 0 90px;">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ovWorldMap">
+  <div class="panel map-ov">
+    <h2>🌍 明中学子 · 全球城市足迹</h2>
+    <div class="wm-stats">
+      <div class="wm-stat"><b id="wmCityCnt">0</b><span>已点亮城市</span></div>
+      <div class="wm-stat"><b id="wmPlayCnt">0</b><span>累计通关次数</span></div>
+      <div class="wm-stat"><b id="wmMyCity">—</b><span>我的城市</span></div>
+    </div>
+    <div class="wm-svg-box"><svg id="mxWorldSvg" viewBox="0 0 1000 520" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="wm-info" id="wmInfo">点击地图上的光点查看城市详情 · 光点越亮，通关次数越多</div>
+    <div class="wm-note">底图为简化世界轮廓示意（等距圆柱投影，非精确边界），城市光点按经纬度标注。数据仅存于本机浏览器，不上传。</div>
+    <div class="btn-row" style="display:flex; gap:8px; margin-top:8px;">
+      <button class="tb-btn" id="wmPick" style="flex:1;">📍 选择/修改我的城市</button>
+      <button class="close" id="wmClose" style="flex:0 0 90px;">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script id="mx184js">
+(function(){
+'use strict';
+/* ===== v184 常量 ===== */
+var LITE10_IDX=[0,1,2,3,4,5,7,9,10,11];
+var CITY_LIST=[
+  {n:'北京',lat:39.9,lon:116.4},{n:'上海',lat:31.2,lon:121.5},{n:'广州',lat:23.1,lon:113.3},
+  {n:'深圳',lat:22.5,lon:114.1},{n:'成都',lat:30.6,lon:104.1},{n:'杭州',lat:30.3,lon:120.2},
+  {n:'南京',lat:32.1,lon:118.8},{n:'武汉',lat:30.6,lon:114.3},{n:'西安',lat:34.3,lon:108.9},
+  {n:'重庆',lat:29.6,lon:106.5},{n:'天津',lat:39.1,lon:117.2},{n:'苏州',lat:31.3,lon:120.6},
+  {n:'福州',lat:26.1,lon:119.3},{n:'厦门',lat:24.5,lon:118.1},{n:'三明',lat:26.3,lon:117.6},
+  {n:'明溪',lat:26.3,lon:117.2},{n:'泉州',lat:24.9,lon:118.6},{n:'长沙',lat:28.2,lon:112.9},
+  {n:'郑州',lat:34.7,lon:113.6},{n:'济南',lat:36.7,lon:117.0},{n:'青岛',lat:36.1,lon:120.4},
+  {n:'大连',lat:38.9,lon:121.6},{n:'沈阳',lat:41.8,lon:123.4},{n:'哈尔滨',lat:45.8,lon:126.5},
+  {n:'昆明',lat:25.0,lon:102.7},{n:'贵阳',lat:26.6,lon:106.6},{n:'南宁',lat:22.8,lon:108.3},
+  {n:'海口',lat:20.0,lon:110.3},{n:'兰州',lat:36.1,lon:103.8},{n:'银川',lat:38.5,lon:106.3},
+  {n:'西宁',lat:36.6,lon:101.8},{n:'乌鲁木齐',lat:43.8,lon:87.6},{n:'拉萨',lat:29.7,lon:91.1},
+  {n:'呼和浩特',lat:40.8,lon:111.7},{n:'太原',lat:37.9,lon:112.6},{n:'石家庄',lat:38.0,lon:114.5},
+  {n:'合肥',lat:31.8,lon:117.2},{n:'南昌',lat:28.7,lon:115.9},{n:'宁波',lat:29.9,lon:121.6},
+  {n:'无锡',lat:31.5,lon:120.3},{n:'温州',lat:28.0,lon:120.7},{n:'珠海',lat:22.3,lon:113.6},
+  {n:'东莞',lat:23.0,lon:113.7},{n:'佛山',lat:23.0,lon:113.1},{n:'中国香港',lat:22.3,lon:114.2},
+  {n:'中国澳门',lat:22.2,lon:113.5},{n:'中国台北',lat:25.0,lon:121.6},{n:'高雄',lat:22.6,lon:120.3},
+  {n:'东京',lat:35.7,lon:139.7},{n:'大阪',lat:34.7,lon:135.5},{n:'首尔',lat:37.6,lon:127.0},
+  {n:'新加坡',lat:1.35,lon:103.8},{n:'曼谷',lat:13.8,lon:100.5},{n:'吉隆坡',lat:3.1,lon:101.7},
+  {n:'雅加达',lat:-6.2,lon:106.8},{n:'马尼拉',lat:14.6,lon:121.0},{n:'河内',lat:21.0,lon:105.8},
+  {n:'新德里',lat:28.6,lon:77.2},{n:'孟买',lat:19.1,lon:72.9},{n:'迪拜',lat:25.2,lon:55.3},
+  {n:'伦敦',lat:51.5,lon:-0.1},{n:'巴黎',lat:48.9,lon:2.4},{n:'柏林',lat:52.5,lon:13.4},
+  {n:'罗马',lat:41.9,lon:12.5},{n:'马德里',lat:40.4,lon:-3.7},{n:'莫斯科',lat:55.8,lon:37.6},
+  {n:'纽约',lat:40.7,lon:-74.0},{n:'洛杉矶',lat:34.1,lon:-118.2},{n:'旧金山',lat:37.8,lon:-122.4},
+  {n:'芝加哥',lat:41.9,lon:-87.6},{n:'多伦多',lat:43.7,lon:-79.4},{n:'温哥华',lat:49.3,lon:-123.1},
+  {n:'墨西哥城',lat:19.4,lon:-99.1},{n:'圣保罗',lat:-23.6,lon:-46.6},{n:'里约热内卢',lat:-22.9,lon:-43.2},
+  {n:'布宜诺斯艾利斯',lat:-34.6,lon:-58.4},{n:'悉尼',lat:-33.9,lon:151.2},{n:'墨尔本',lat:-37.8,lon:145.0},
+  {n:'奥克兰',lat:-36.8,lon:174.8},{n:'开普敦',lat:-33.9,lon:18.4},{n:'开罗',lat:30.0,lon:31.2},
+  {n:'内罗毕',lat:-1.3,lon:36.8},{n:'伊斯坦布尔',lat:41.0,lon:28.9}
+];
+var CONTINENTS=[
+  [[-168,65],[-140,70],[-100,70],[-60,60],[-55,47],[-80,25],[-97,18],[-115,30],[-125,45],[-150,60]],
+  [[-80,10],[-60,10],[-35,-5],[-40,-25],[-55,-35],[-70,-55],[-75,-20],[-80,-5]],
+  [[-10,60],[10,70],[40,68],[40,40],[20,40],[0,43],[-10,45]],
+  [[-17,35],[10,37],[35,30],[50,10],[40,-15],[20,-35],[10,-35],[-10,5],[-17,20]],
+  [[40,70],[100,75],[160,70],[180,65],[140,45],[120,25],[100,10],[80,8],[60,25],[45,40]],
+  [[112,-12],[130,-12],[152,-28],[150,-40],[130,-38],[115,-30]]
+];
+var EN2CN={beijing:'北京',shanghai:'上海',guangzhou:'广州',shenzhen:'深圳',chengdu:'成都',hangzhou:'杭州',
+ nanjing:'南京',wuhan:'武汉',xian:"西安",'xi\'an':'西安',chongqing:'重庆',tianjin:'天津',fuzhou:'福州',
+ xiamen:'厦门',sanming:'三明',mingxi:'明溪',quanzhou:'泉州',changsha:'长沙',zhengzhou:'郑州',jinan:'济南',
+ qingdao:'青岛',shenyang:'沈阳',kunming:'昆明',guiyang:'贵阳',nanning:'南宁',haikou:'海口',lanzhou:'兰州',
+ urumqi:'乌鲁木齐',lhasa:'拉萨',taipei:'中国台北',hongkong:'中国香港',tokyo:'东京',seoul:'首尔',
+ singapore:'新加坡',bangkok:'曼谷',london:'伦敦',paris:'巴黎',berlin:'柏林','new york':'纽约',
+ 'los angeles':'洛杉矶',sydney:'悉尼',melbourne:'墨尔本',vancouver:'温哥华',toronto:'多伦多'};
+
+/* ===== 通用存储助手（复用全局 loadState/saveState） ===== */
+function ls(k,d){ try{ if(window.loadState) return loadState(k,d); var v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } }
+function ss(k,v){ try{ if(window.saveState) return saveState(k,v); localStorage.setItem(k,typeof v==='object'?JSON.stringify(v):String(v)); }catch(e){} }
+function toast(m){ try{ if(window.showToast) showToast(m); else console.log('[v184]',m); }catch(e){ console.log('[v184]',m); } }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+/* ===== MX_CITY：城市足迹核心（预留全球上报口子） ===== */
+var MX_CITY={
+  getSelected:function(){ return ls('mx_city_selected',''); },
+  setSelected:function(c){ ss('mx_city_selected',c); },
+  getLight:function(){ try{ return JSON.parse(ls('mx_city_light','{}'))||{}; }catch(e){ return {}; } },
+  saveLight:function(o){ ss('mx_city_light',o); },
+  light:function(city){
+    city=city||this.getSelected(); if(!city) return false;
+    var L=this.getLight(); var e=L[city]||{count:0,last:0};
+    e.count=(e.count||0)+1; e.last=Date.now(); L[city]=e; this.saveLight(L);
+    this.report(city,e.count); /* 预留：将来在此对接后端全球汇总 */
+    return true;
+  },
+  report:function(city,count){
+    /* 全球上报预留口：当前仅本地。将来接后端时只改这里，前端其余不动。 */
+    try{ if(typeof window.MX_CITY_REPORT==='function') window.MX_CITY_REPORT(city,count); }catch(e){}
+  },
+  clear:function(){ ss('mx_city_light','{}'); ss('mx_city_selected',''); },
+  find:function(name){ for(var i=0;i<CITY_LIST.length;i++) if(CITY_LIST[i].n===name) return CITY_LIST[i]; return null; }
+};
+window.MX_CITY=MX_CITY;
+
+/* ===== MX_LITE：10关速通模式 ===== */
+var liteOn = ls('mx_lite_mode','0')==='1';
+var MX_LITE={ on:liteOn };
+window.MX_LITE=MX_LITE;
+
+/* --- 劫持 trackIdxs：精简模式只返回10关索引 --- */
+var _origTrackIdxs=window.trackIdxs;
+window.trackIdxs=function(){
+  if(MX_LITE.on) return LITE10_IDX.slice();
+  return _origTrackIdxs?_origTrackIdxs():[];
+};
+
+/* --- 劫持 saveCleared：精简模式写独立 key，并在通关第10关时点亮城市 --- */
+var _origSaveCleared=window.saveCleared;
+window.saveCleared=function(){
+  if(MX_LITE.on){
+    try{ ss('fafu_llk_lite_cleared', [...clearedSet]); }catch(e){}
+    var last=LITE10_IDX[LITE10_IDX.length-1];
+    if(typeof curIdx!=='undefined' && curIdx===last){
+      setTimeout(function(){ try{ doLight(); }catch(e){} },0);
+    }
+  } else if(_origSaveCleared){ _origSaveCleared(); }
+};
+
+/* --- 劫持 openOv：精简模式修正通关文案 --- */
+var _origOpenOv=window.openOv;
+window.openOv=function(id){
+  if(id==='ovWin' && MX_LITE.on){
+    try{
+      var wi=document.getElementById('winIntro');
+      if(wi) wi.textContent='🎊 10关速通全部连通！校史主线一气呵成'+(MX_CITY.getSelected()?('，'+MX_CITY.getSelected()+' 已被点亮 ✦'):'');
+      var wc=document.getElementById('winCheer');
+      if(wc) wc.innerHTML='<span class="q">“</span>速通达人，杉杉为你鼓掌！<span class="q">”</span>';
+      var wn=document.getElementById('btnWinNext');
+      if(wn) wn.textContent='🎉 完成';
+    }catch(e){}
+  }
+  return _origOpenOv?_origOpenOv.apply(this,arguments):undefined;
+};
+
+function doLight(){
+  var c=MX_CITY.getSelected();
+  if(!c){ toast('🌍 先在「🌍足迹」里选一座城市，再通关点亮它'); return; }
+  var ok=MX_CITY.light(c);
+  if(ok){
+    var e=MX_CITY.getLight()[c];
+    toast('✦ '+c+' 已点亮！第 '+e.count+' 次通关足迹');
+    try{ if(window.CineAudio) CineAudio.victory&&CineAudio.victory(); }catch(e){}
+    renderWorld();
+  }
+}
+
+/* --- 模式切换 --- */
+function applyModeUI(){
+  var b=document.getElementById('btnLiteMode');
+  if(b){ b.textContent=MX_LITE.on?'⚡速通10关':'🎮完整50关'; b.className='tb-btn'+(MX_LITE.on?' lite-on':''); b.title=MX_LITE.on?'当前：10关速通版（点击切回完整50关）':'当前：完整50关（点击切到10关速通版）'; }
+  var tt=document.getElementById('totLevels'); if(tt) tt.textContent=MX_LITE.on?'10':'50';
+  var cl=document.getElementById('clearedLevels'); if(cl) cl.textContent=MX_LITE.on?(getLiteCleared().size):(typeof clearedSet!=='undefined'?clearedSet.size:0);
+}
+function getLiteCleared(){ try{ return new Set(JSON.parse(ls('fafu_llk_lite_cleared','[]'))); }catch(e){ return new Set(); } }
+function switchMode(on){
+  if(on===MX_LITE.on){ applyModeUI(); return; }
+  /* 保存当前模式进度 */
+  try{ if(MX_LITE.on) ss('fafu_llk_lite_cleared',[...clearedSet]); else if(_origSaveCleared) _origSaveCleared(); }catch(e){}
+  MX_LITE.on=on; ss('mx_lite_mode',on?'1':'0');
+  /* 载入目标模式进度 */
+  try{ clearedSet = on?getLiteCleared():new Set(JSON.parse(ls('fafu_llk_cleared','[]'))); }catch(e){ clearedSet=new Set(); }
+  curIdx = on?LITE10_IDX[0]:0;
+  applyModeUI();
+  try{ loadLevel(); }catch(e){}
+  toast(on?'⚡ 已切换到 10关速通版':'🎮 已切回 完整50关');
+}
+
+/* --- 城市选择面板 --- */
+var pendingCity='';
+function renderCityGrid(filter){
+  filter=(filter||'').trim();
+  var grid=document.getElementById('cityGrid'); if(!grid) return;
+  var L=MX_CITY.getLight(); var sel=MX_CITY.getSelected();
+  var html='';
+  for(var i=0;i<CITY_LIST.length;i++){
+    var c=CITY_LIST[i];
+    if(filter && c.n.indexOf(filter)<0) continue;
+    var lit=!!L[c.n]; var count=lit?L[c.n].count:0;
+    var cl='city-chip'+(sel===c.n?' sel':'')+(lit?' lit':'');
+    html+='<button class="'+cl+'" data-city="'+esc(c.n)+'"><span class="cc-n">'+esc(c.n)+'</span>'+(lit?'<span class="cc-c">✦'+count+'</span>':'')+'</button>';
+  }
+  grid.innerHTML=html||'<div style="grid-column:1/-1;text-align:center;color:#8a7a5c;padding:16px;">未找到该城市</div>';
+  Array.prototype.forEach.call(grid.querySelectorAll('.city-chip'),function(btn){
+    btn.onclick=function(){
+      pendingCity=btn.getAttribute('data-city');
+      Array.prototype.forEach.call(grid.querySelectorAll('.city-chip'),function(x){x.classList.remove('sel');});
+      btn.classList.add('sel');
+    };
+  });
+}
+function openCityPick(){
+  pendingCity=MX_CITY.getSelected();
+  document.getElementById('citySearch').value='';
+  renderCityGrid('');
+  document.getElementById('ovCityPick').classList.add('show');
+  ipPrefill();
+}
+function ipPrefill(){
+  var el=document.getElementById('mxCityIp'); if(!el) return;
+  el.textContent='📍 正在尝试自动定位…';
+  var done=false;
+  var timer=setTimeout(function(){ if(!done){ done=true; if(el&&!MX_CITY.getSelected()) el.textContent='📍 自动定位不可用，请手动选择城市'; } },5000);
+  try{
+    if(!window.fetch) throw new Error('no fetch');
+    fetch('https://ipapi.co/json/',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+      done=true; clearTimeout(timer);
+      var raw=(d.city||d.city_name||'').toString();
+      var name=EN2CN[raw.toLowerCase()]||'';
+      if(!name){ for(var k in EN2CN){ if(raw.toLowerCase().indexOf(k)>=0){ name=EN2CN[k]; break; } } }
+      if(name && MX_CITY.find(name)){
+        if(!MX_CITY.getSelected()){ pendingCity=name; renderCityGrid(''); }
+        if(el) el.textContent='📍 检测到你可能在：'+name+'（可手动修改）';
+      } else if(el){ el.textContent='📍 定位到：'+(raw||'未知')+'（未收录，请手动选择）'; }
+    }).catch(function(){ done=true; clearTimeout(timer); if(el&&!MX_CITY.getSelected()) el.textContent='📍 自动定位不可用，请手动选择城市'; });
+  }catch(e){ done=true; clearTimeout(timer); if(el) el.textContent='📍 请手动选择城市'; }
+}
+
+/* --- 世界地图渲染 --- */
+function proj(lon,lat){ return [ (lon+180)/360*1000, (90-lat)/180*520 ]; }
+function renderWorld(){
+  var svg=document.getElementById('mxWorldSvg'); if(!svg) return;
+  var s='';
+  /* 经纬网格 */
+  for(var lon=-150;lon<=150;lon+=30){ var a=proj(lon,90),b=proj(lon,-90); s+='<line class="wm-grid" x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'"/>'; }
+  for(var lat=-60;lat<=60;lat+=30){ var a2=proj(-180,lat),b2=proj(180,lat); s+='<line class="wm-grid" x1="'+a2[0]+'" y1="'+a2[1]+'" x2="'+b2[0]+'" y2="'+b2[1]+'"/>'; }
+  /* 大陆 */
+  for(var ci=0;ci<CONTINENTS.length;ci++){
+    var pts=CONTINENTS[ci].map(function(p){ var q=proj(p[0],p[1]); return q[0].toFixed(1)+','+q[1].toFixed(1); }).join(' ');
+    s+='<polygon class="wm-land" points="'+pts+'"/>';
+  }
+  /* 城市光点 */
+  var L=MX_CITY.getLight(); var sel=MX_CITY.getSelected();
+  for(var i=0;i<CITY_LIST.length;i++){
+    var c=CITY_LIST[i]; var p=proj(c.lon,c.lat); var lit=!!L[c.n]; var cnt=lit?L[c.n].count:0;
+    var r=lit?(cnt>=10?10:(cnt>=5?8:(cnt>=2?7:6))):3;
+    s+='<g class="wm-city'+(lit?' lit':'')+'" data-city="'+esc(c.n)+'" data-count="'+cnt+'">';
+    if(lit) s+='<circle class="halo" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="5"/>';
+    s+='<circle class="core" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+r+'"/>';
+    if(lit||c.n===sel) s+='<text class="wm-city-label" x="'+(p[0]+6).toFixed(1)+'" y="'+(p[1]+4).toFixed(1)+'">'+esc(c.n)+'</text>';
+    s+='</g>';
+  }
+  svg.innerHTML=s;
+  Array.prototype.forEach.call(svg.querySelectorAll('.wm-city'),function(g){
+    g.onclick=function(){
+      var city=g.getAttribute('data-city'); var count=parseInt(g.getAttribute('data-count'),10)||0; var e=MX_CITY.getLight()[city];
+      var info=document.getElementById('wmInfo');
+      if(info) info.innerHTML=count>0?('<b style="color:#9e2b25;">'+esc(city)+'</b> · 已点亮 '+count+' 次 · 最近 '+new Date(e.last).toLocaleDateString('zh-CN')):(esc(city)+' · 尚未点亮，去「10关速通版」通关点亮它吧');
+    };
+  });
+  /* 统计 */
+  var keys=Object.keys(L); var total=0; for(var k in L) total+=(L[k].count||0);
+  var cc=document.getElementById('wmCityCnt'); if(cc) cc.textContent=keys.length;
+  var pc=document.getElementById('wmPlayCnt'); if(pc) pc.textContent=total;
+  var mc=document.getElementById('wmMyCity'); if(mc) mc.textContent=sel||'—';
+}
+function openWorldMap(){ renderWorld(); document.getElementById('ovWorldMap').classList.add('show'); }
+
+/* --- 注入按钮 --- */
+function injectButtons(){
+  var row=document.querySelector('.tb-row'); if(!row) return;
+  if(!document.getElementById('btnLiteMode')){
+    var b=document.createElement('button'); b.className='tb-btn'; b.id='btnLiteMode'; row.appendChild(b);
+    b.onclick=function(){ switchMode(!MX_LITE.on); };
+  }
+  if(!document.getElementById('btnWorldMap')){
+    var w=document.createElement('button'); w.className='tb-btn'; w.id='btnWorldMap'; w.textContent='🌍足迹'; row.appendChild(w);
+    w.onclick=function(){ openWorldMap(); };
+  }
+  applyModeUI();
+}
+
+/* --- 事件绑定 --- */
+function bind(){
+  var qs=document.getElementById('citySearch');
+  if(qs) qs.oninput=function(){ renderCityGrid(qs.value); };
+  var cc=document.getElementById('cityConfirm');
+  if(cc) cc.onclick=function(){
+    if(!pendingCity){ toast('请先选择一座城市'); return; }
+    MX_CITY.setSelected(pendingCity);
+    document.getElementById('ovCityPick').classList.remove('show');
+    toast('📍 已设「'+pendingCity+'」为我的城市，通关速通版即可点亮');
+    renderWorld();
+  };
+  var cl=document.getElementById('cityClear');
+  if(cl) cl.onclick=function(){
+    if(!window.confirm('确定清除所有城市足迹记录吗？此操作不可恢复。')) return;
+    MX_CITY.clear(); pendingCity=''; renderCityGrid(''); renderWorld(); toast('🧹 足迹已清除');
+  };
+  var x=document.getElementById('cityClose'); if(x) x.onclick=function(){ document.getElementById('ovCityPick').classList.remove('show'); };
+  var wc=document.getElementById('wmClose'); if(wc) wc.onclick=function(){ document.getElementById('ovWorldMap').classList.remove('show'); };
+  var wp=document.getElementById('wmPick'); if(wp) wp.onclick=function(){ document.getElementById('ovWorldMap').classList.remove('show'); openCityPick(); };
+}
+
+/* --- 初始化 --- */
+function init(){
+  injectButtons(); bind(); renderWorld();
+  /* 若首次启用速通模式且总关卡显示仍为50，校正一次 */
+  setTimeout(applyModeUI,300);
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+/* 暴露调试接口 */
+window.MX_LITE.toggle=function(){ switchMode(!MX_LITE.on); };
+window.MX_LITE.light=function(){ doLight(); };
+window.MX_LITE.openCity=openCityPick;
+window.MX_LITE.openMap=openWorldMap;
+})();
+</script>
+<!-- ============ v184 END ============ -->
+
 </body>
 </html>
