@@ -16525,5 +16525,493 @@ if(_fetch){
 </script>
 <!-- ============ v186 END ============ -->
 
+<!-- ============ v187 BEGIN: 杉杉百宝箱(生活/工作/其他各9款) + 萌娃语音 + 等级联动 ============ -->
+<style id="mx187css">
+/* ===== 百宝箱面板 ===== */
+#ovBox{z-index:122;}
+#ovBox .panel{max-width:660px;max-height:90vh;overflow-y:auto;padding:0 0 14px;}
+.bx-head{position:sticky;top:0;z-index:3;padding:13px 16px 11px;text-align:center;
+  background:linear-gradient(135deg,#f0f8e8,#e2f1d4);border-bottom:2px solid #c4dfae;border-radius:12px 12px 0 0;}
+.bx-head h2{margin:0;font-family:serif;font-size:19px;color:#24532f;}
+.bx-head .bx-sub{font-size:11px;color:#5f8a4c;margin-top:2px;}
+.bx-tabs{display:flex;gap:5px;padding:9px 12px 4px;position:sticky;top:64px;z-index:2;background:var(--paper,#fffdf4);}
+.bx-tab{flex:1;padding:8px 4px;border:2px solid #cfe3b6;border-radius:10px;background:#f7fbf0;
+  font-size:12.5px;font-weight:800;color:#3d6b2c;cursor:pointer;transition:.15s;}
+.bx-tab.on{background:linear-gradient(135deg,#5aa34a,#3a7a2c);color:#fff;border-color:#3a7a2c;}
+.bx-view{display:none;padding:4px 12px;}
+.bx-view.on{display:block;}
+.bx-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
+@media(max-width:430px){.bx-grid{grid-template-columns:1fr;}}
+.bx-card{background:linear-gradient(135deg,#fffef9,#f7fbf0);border:2px solid #d7e7c4;border-radius:13px;
+  padding:10px 11px;box-shadow:0 2px 7px rgba(70,110,50,.07);}
+.bx-card .bx-ct{font-size:14.5px;font-weight:800;color:#24532f;font-family:serif;margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+.bx-card .bx-ct .ic{font-size:18px;}
+.bx-card .bx-freq{font-size:9px;font-weight:700;color:#8aa776;border:1px solid #cfe0b6;border-radius:6px;padding:0 5px;margin-left:auto;}
+.bx-card .bx-ch{font-size:12px;color:#4c6b42;line-height:1.6;min-height:22px;}
+.bx-btn{display:inline-block;margin:5px 4px 0 0;padding:5px 11px;border:none;border-radius:8px;cursor:pointer;
+  background:linear-gradient(135deg,#62a94f,#3d7d2e);color:#fff;font-size:11.5px;font-weight:700;box-shadow:0 2px 5px rgba(60,120,40,.2);}
+.bx-btn.ghost{background:#eef5e6;color:#3d7d2e;box-shadow:none;border:1px solid #c4dfae;}
+.bx-btn.sm{padding:3px 8px;font-size:10.5px;}
+.bx-input{width:100%;box-sizing:border-box;margin-top:5px;padding:6px 8px;border:1px solid #cfe0b6;border-radius:8px;
+  font-size:12.5px;color:#33502a;background:#fffef9;outline:none;}
+.bx-input:focus{border-color:#6fae55;}
+.bx-row{display:flex;gap:5px;align-items:center;}
+.bx-row .bx-input{margin-top:0;}
+.bx-quote{font-family:serif;font-size:12.5px;line-height:1.7;color:#2f5a34;background:#f0f7e8;
+  border-left:3px solid #7fbb63;padding:6px 9px;border-radius:0 8px 8px 0;margin-top:4px;}
+.bx-list{margin-top:5px;max-height:132px;overflow-y:auto;}
+.bx-item{display:flex;align-items:center;gap:6px;padding:3px 1px;font-size:12px;color:#3d5c33;border-bottom:1px dashed #d8e6c8;}
+.bx-item .bx-del{margin-left:auto;cursor:pointer;color:#bb6a5a;font-size:13px;}
+.bx-big{font-family:serif;font-size:30px;font-weight:900;color:#3a7a2c;text-align:center;letter-spacing:2px;margin:3px 0;}
+.bx-close{display:block;margin:12px auto 0;padding:9px 34px;border:none;border-radius:10px;cursor:pointer;
+  background:linear-gradient(135deg,#62a94f,#3d7d2e);color:#fff;font-size:14px;font-weight:800;}
+.bx-note{font-size:10px;color:#93a486;text-align:center;margin-top:7px;}
+/* 声音设置卡 */
+.vset-cur{font-size:13px;color:#2f5a34;background:#f0f7e8;border:1px solid #cfe0b6;border-radius:9px;padding:8px 10px;margin-bottom:6px;line-height:1.7;}
+.vset-opt{display:inline-block;margin:3px 5px 0 0;padding:6px 10px;border:2px solid #cfe0b6;border-radius:9px;
+  background:#f7fbf0;color:#3d6b2c;font-size:12px;font-weight:700;cursor:pointer;}
+.vset-opt.on{background:linear-gradient(135deg,#5aa34a,#3a7a2c);color:#fff;border-color:#3a7a2c;}
+.vset-opt.lock{opacity:.5;cursor:not-allowed;}
+/* 等级联动徽标（巡游杉杉） */
+#mxRoam .rm-voice{position:absolute;top:-10px;left:-10px;width:24px;height:24px;border-radius:50%;border:1.5px solid #fff;
+  background:linear-gradient(135deg,#ffb36b,#f07f3c);color:#fff;font-size:12px;line-height:22px;text-align:center;cursor:pointer;
+  box-shadow:0 2px 6px rgba(180,110,40,.35);}
+</style>
+
+<div class="overlay" id="ovBox"><div class="panel">
+  <div class="bx-head"><h2><span class="bx-mascot">🧰</span> 杉杉百宝箱</h2>
+    <div class="bx-sub">生活 · 工作 · 其他 · 玩家每天离不开的桌面小工具</div></div>
+  <div class="bx-tabs">
+    <div class="bx-tab on" data-v="life">🏠 生活小工具</div>
+    <div class="bx-tab" data-v="work">💼 工作小工具</div>
+    <div class="bx-tab" data-v="other">🧩 其他工具</div>
+  </div>
+  <div class="bx-view on" id="bxViewLife"></div>
+  <div class="bx-view" id="bxViewWork"></div>
+  <div class="bx-view" id="bxViewOther"></div>
+  <button class="bx-close" id="bxClose">收起百宝箱</button>
+  <div class="bx-note">数据仅保存在本机 · 杉杉陪你认真生活每一天 🌿</div>
+</div></div>
+
+<script id="mx187js">
+(function(){
+'use strict';
+function $(s,r){ return (r||document).querySelector(s); }
+function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function ls(k,d){ try{ var v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }
+function ss(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function toast(m){ try{ if(window.showToast) window.showToast(m); }catch(e){} }
+
+/* ==================== 一、萌娃语音系统 MX_VOICE ==================== */
+/* 音色随杉杉等级进化：低阶萌娃萌萌 → 中阶童声 → 高阶可选男童/女童 */
+var VK='mx187_voice_style';
+var VOICES={
+  meng:{name:'萌娃萌萌',emo:'🧸',pitch:1.75,rate:1.12,per:1,vol:1, desc:'软糯萌娃音，杉杉小时候的奶声奶气（默认）'},
+  girl:{name:'萌萌女童',emo:'👧',pitch:1.55,rate:1.08,per:1,vol:1, desc:'清甜小女童，活泼可爱'},
+  boy: {name:'阳光男童',emo:'👦',pitch:1.32,rate:1.05,per:0,vol:1, desc:'清亮小男童，朝气蓬勃'}
+};
+var LEVEL_VOICE=['meng','meng','meng','girl','girl','girl','boy','boy','boy']; /* 9级对应默认音色 */
+function levelIdx(){
+  try{ var st=window.MX_PET&&window.MX_PET.state?window.MX_PET.state():null;
+    if(st&&typeof st.idx==='number') return st.idx; }catch(e){}
+  return 0;
+}
+function voiceUnlocked(){ return levelIdx()>=6; } /* Lv.7 起可选男女童声 */
+function curStyle(){
+  var sel=ls(VK,'auto');
+  if(sel!=='auto' && VOICES[sel]) {
+    /* 未解锁高阶音色时，回落到等级默认 */
+    if((sel==='boy'||sel==='girl') && !voiceUnlocked()) return LEVEL_VOICE[Math.min(8,levelIdx())];
+    return sel;
+  }
+  return LEVEL_VOICE[Math.min(8,levelIdx())];
+}
+var _netA=null;
+function stopVoice(){
+  try{ if(_netA){ _netA.pause(); _netA.onended=null; _netA.onerror=null; _netA=null; } }catch(e){}
+  try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+  try{ if(typeof window.speakTTS==='function') window.speakTTS(''); }catch(e){}
+}
+function hasZhVoice(){
+  try{ var vs=(window.speechSynthesis&&speechSynthesis.getVoices&&speechSynthesis.getVoices())||[];
+    return vs.some(function(v){ return /zh|cmn|Chinese|中文|普通话/i.test((v.lang||'')+(v.name||'')); }); }catch(e){ return false; }
+}
+/* 萌娃朗读：设备TTS 用高 pitch 童声；无中文包则在线百度 TTS 用 per 参数 */
+function voiceSay(text){
+  text=String(text==null?'':text).trim();
+  if(!text){ stopVoice(); return; }
+  var v=VOICES[curStyle()];
+  stopVoice();
+  if(hasZhVoice()){
+    try{
+      var u=new SpeechSynthesisUtterance(text);
+      u.lang='zh-CN'; u.pitch=v.pitch; u.rate=v.rate; u.volume=v.vol;
+      var vs=speechSynthesis.getVoices()||[];
+      var zh=vs.filter(function(x){return /zh|cmn|Chinese|中文|普通话/i.test((x.lang||'')+(x.name||''));})[0];
+      if(zh) u.voice=zh;
+      speechSynthesis.speak(u);
+      return;
+    }catch(e){}
+  }
+  /* 在线兜底：百度 gettts，per=0 男声/1 女声；spd 稍快显萌 */
+  try{
+    var url='https://fanyi.baidu.com/gettts?lan=zh&text='+encodeURIComponent(text.slice(0,200))
+      +'&spd=6&source=web&per='+v.per;
+    var a=new Audio(url); _netA=a;
+    var p=a.play(); if(p&&p.catch) p.catch(function(){});
+  }catch(e){}
+}
+/* 劫持全局朗读：杉杉所有对话统一走萌娃音色；资讯预录mp3仍由原绑定处理 */
+var _baseSpeak=(typeof window.speakTTS==='function')?window.speakTTS:null;
+window.speakTTS=function(text,gender){
+  text=String(text==null?'':text).trim();
+  if(!text){ stopVoice(); return; }
+  /* gender='raw' 保留原始发音（个别特殊场景），否则一律萌娃化 */
+  if(gender==='raw' && _baseSpeak){ try{ _baseSpeak(text,'female'); return; }catch(e){} }
+  voiceSay(text);
+};
+window.MX_VOICE={
+  say:voiceSay, stop:stopVoice,
+  style:curStyle,
+  setStyle:function(s){ if(!VOICES[s])return;
+    if((s==='boy'||s==='girl')&&!voiceUnlocked()){ toast('杉杉升到 Lv.7 后可选男童/女童声哦～'); return; }
+    ss(VK,s); toast('杉杉语音已切换：'+VOICES[s].name);
+    try{ var vb=document.getElementById('rmVoiceBtn'); if(vb) vb.textContent=VOICES[s].emo; }catch(e){}
+    voiceSay('你好呀，我是'+VOICES[s].name+'的杉杉！'); },
+  unlock:voiceUnlocked, level:levelIdx, voices:VOICES
+};
+/* 巡游杉杉加语音切换小按钮 */
+function injectVoiceBtn(){
+  var el=document.getElementById('mxRoam'); if(!el) return;
+  var b=$('#rmVoiceBtn');
+  if(!b){ b=document.createElement('div'); b.className='rm-voice'; b.id='rmVoiceBtn'; b.title='切换杉杉声音';
+    b.onclick=function(e){ e.stopPropagation(); openBox('other'); }; el.appendChild(b); }
+  b.textContent=VOICES[curStyle()].emo;
+}
+/* 等级变化时，同步巡游杉杉的形象、等级牌与语音图标 */
+var _lastLv=levelIdx();
+setInterval(function(){
+  var lv=levelIdx();
+  if(lv!==_lastLv){ _lastLv=lv;
+    try{ if(window.MX_ROAM&&window.MX_ROAM.refreshMascot) window.MX_ROAM.refreshMascot(); }catch(e){}
+    injectVoiceBtn();
+    /* 声音设置卡若正打开，重绘 */
+    if($('#ovBox')&&$('#ovBox').classList.contains('show')&&$('#bx_other_8')){
+      var card=$('#bx_other_8'); if(card&&window.MX_VOICE){ /* 触发重绘 */
+        var btn=$('#bxVSay'); if(btn) btn.click(); }
+    }
+  }
+},3000);
+
+/* ==================== 二、百宝箱 27 款工具 ==================== */
+/* 每个工具：{ic,name,freq,sub,init(bodyEl,extraEl)}  按使用频率从高到低排列 */
+var TOOLS={life:[],work:[],other:[]};
+function T(cat,ic,name,freq,sub,init){ TOOLS[cat].push({ic:ic,name:name,freq:freq,sub:sub,init:init}); }
+
+/* ---------- 生活小工具（9款，按频率） ---------- */
+T('life','💰','记账本','★★★★★','记一笔收支，看看今天花了多少',function(b,x){
+  var key='mx187_ledger', list=ls(key,[]);
+  function paint(){
+    var todayStr=today(), day=0, mon=0, m=todayStr.slice(0,7);
+    list.forEach(function(r){ if(r.d===todayStr) day+=r.v; if(r.d.slice(0,7)===m) mon+=r.v; });
+    b.innerHTML='<div class="bx-quote">今日支出 <b>¥'+day.toFixed(2)+'</b> · 本月 <b>¥'+mon.toFixed(2)+'</b></div><div class="bx-list">'
+      +list.slice(0,6).map(function(r,i){return '<div class="bx-item"><span>'+r.d.slice(5)+' '+esc(r.n)+'</span><b>¥'+r.v.toFixed(2)+'</b><span class="bx-del" data-i="'+i+'">✕</span></div>';}).join('')
+      +(list.length?'':'<div style="font-size:11px;color:#93a486">还没有记账，记一笔吧～</div>')+'</div>';
+    $$('.bx-del',b).forEach(function(d){ d.onclick=function(){ list.splice(+d.dataset.i,1); ss(key,list); paint(); }; });
+  }
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxLedN" placeholder="用途，如：午餐"><input class="bx-input" id="bxLedV" type="number" placeholder="金额" style="max-width:80px"><button class="bx-btn sm" id="bxLedAdd">记一笔</button></div>';
+  $('#bxLedAdd',x).onclick=function(){ var n=$('#bxLedN',x).value.trim(), v=parseFloat($('#bxLedV',x).value);
+    if(!n||!(v>0)){ toast('填用途和金额哦'); return; } list.unshift({d:today(),n:n,v:v}); ss(key,list); $('#bxLedN',x).value=''; $('#bxLedV',x).value=''; paint(); toast('记好啦，杉杉帮你记着账'); };
+  paint();
+});
+T('life','📝','便签速记','★★★★★','随手记下，灵感不溜走',function(b,x){
+  var key='mx187_notes', list=ls(key,[]);
+  function paint(){ b.innerHTML='<div class="bx-list">'+list.map(function(n,i){return '<div class="bx-item"><span style="flex:1">'+esc(n.t)+'</span><small style="color:#93a486">'+n.d.slice(5)+'</small><span class="bx-del" data-i="'+i+'">✕</span></div>';}).join('')+(list.length?'':'<div style="font-size:11px;color:#93a486">写点什么吧～</div>')+'</div>';
+    $$('.bx-del',b).forEach(function(d){d.onclick=function(){list.splice(+d.dataset.i,1);ss(key,list);paint();};}); }
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxNoteIn" placeholder="记一句：买酱油、回电话…"><button class="bx-btn sm" id="bxNoteAdd">记下</button></div>';
+  $('#bxNoteAdd',x).onclick=function(){var t=$('#bxNoteIn',x).value.trim();if(!t)return;list.unshift({t:t,d:today()});ss(key,list);$('#bxNoteIn',x).value='';paint();};
+  paint();
+});
+T('life','🛒','购物清单','★★★★☆','买什么先列好，逛超市不遗漏',function(b,x){
+  var key='mx187_shop', list=ls(key,[]);
+  function paint(){ b.innerHTML='<div class="bx-list">'+list.map(function(n,i){return '<div class="bx-item" data-i="'+i+'" style="cursor:pointer"><span>'+(n.done?'✅':'⬜')+'</span><span style="'+(n.done?'text-decoration:line-through;color:#9aa':'')+'">'+esc(n.t)+'</span><span class="bx-del" data-i="'+i+'">✕</span></div>';}).join('')+(list.length?'':'<div style="font-size:11px;color:#93a486">清单空空的～</div>')+'</div>';
+    $$('.bx-item',b).forEach(function(r){r.onclick=function(e){if(e.target.classList.contains('bx-del'))return;var i=+r.dataset.i;list[i].done=!list[i].done;ss(key,list);paint();};});
+    $$('.bx-del',b).forEach(function(d){d.onclick=function(e){e.stopPropagation();list.splice(+d.dataset.i,1);ss(key,list);paint();};}); }
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxShopIn" placeholder="要买的东西"><button class="bx-btn sm" id="bxShopAdd">加清单</button></div>';
+  $('#bxShopAdd',x).onclick=function(){var t=$('#bxShopIn',x).value.trim();if(!t)return;list.push({t:t,done:false});ss(key,list);$('#bxShopIn',x).value='';paint();};
+  paint();
+});
+T('life','🧮','计算器','★★★★☆','简单算一算，账目清楚',function(b,x){
+  b.innerHTML='<div class="bx-big" id="bxCalcOut">0</div>';
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxCalcIn" placeholder="如 12+8*2" style="font-size:14px"><button class="bx-btn sm" id="bxCalcGo">＝</button></div>';
+  $('#bxCalcGo',x).onclick=function(){var e=$('#bxCalcIn',x).value.trim();if(!/^[0-9+\-*/(). ]+$/.test(e)){toast('只支持数字和 + - * / ( )');return;}
+    try{var r=Function('"use strict";return ('+e+')')();$('#bxCalcOut').textContent=isFinite(r)?Math.round(r*1e6)/1e6:'错误';}catch(err){$('#bxCalcOut').textContent='错误';}};
+});
+T('life','⏰','起床闹钟','★★★★☆','设个闹钟，杉杉准时提醒',function(b,x){
+  var key='mx187_alarm', a=ls(key,null);
+  function paint(){ b.innerHTML=a?('<div class="bx-quote">⏰ 已设 <b>'+esc(a.time)+'</b> 提醒：'+esc(a.note||'起床啦')+'<br><small>到点杉杉会语音提醒（需保持页面开启）</small></div>'):'<div style="font-size:11px;color:#93a486">还没设闹钟～</div>'; }
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxAlarmT" type="time" style="max-width:110px"><input class="bx-input" id="bxAlarmN" placeholder="提醒事项"><button class="bx-btn sm" id="bxAlarmSet">设闹钟</button></div>';
+  $('#bxAlarmSet',x).onclick=function(){var t=$('#bxAlarmT',x).value,n=$('#bxAlarmN',x).value.trim()||'起床啦';if(!t){toast('选个时间');return;}a={time:t,note:n,done:today()};ss(key,a);paint();toast('闹钟设好啦');};
+  paint();
+  if(!window.__bxAlarmTick){ window.__bxAlarmTick=setInterval(function(){var al=ls('mx187_alarm',null);if(!al||al.done!==today())return;var now=new Date(),hm=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);if(hm===al.time){al.done='fired_'+today();ss('mx187_alarm',al);voiceSay('叮铃铃，'+al.note+'，杉杉来提醒你啦！');toast('⏰ '+al.note);}},20000);}
+});
+T('life','💧','喝水打卡','★★★★☆','一天八杯水，健康陪伴',function(b,x){
+  var key='mx187_water_'+today(), n=ls(key,0);
+  function paint(){var cups='';for(var i=0;i<8;i++)cups+=(i<n?'💧':'🥛');b.innerHTML='<div style="font-size:22px;letter-spacing:2px">'+cups+'</div><div class="bx-quote">今天已喝 <b>'+n+'/8</b> 杯'+(n>=8?'，达标啦，真棒！🎉':'，继续加油～')+'</div>';}
+  x.innerHTML='<button class="bx-btn" id="bxWaterAdd">＋ 喝一杯</button> <button class="bx-btn ghost sm" id="bxWaterReset">重置</button>';
+  $('#bxWaterAdd',x).onclick=function(){n=Math.min(8,n+1);ss(key,n);paint();if(n===8)voiceSay('哇，今天八杯水喝满啦，杉杉为你点赞！');};
+  $('#bxWaterReset',x).onclick=function(){n=0;ss(key,n);paint();};
+  paint();
+});
+T('life','😴','睡眠记录','★★★☆☆','记录睡眠，关注作息',function(b,x){
+  var key='mx187_sleep', list=ls(key,[]);
+  function paint(){var avg=list.length?(list.reduce(function(s,r){return s+r.h;},0)/list.length).toFixed(1):'—';
+    b.innerHTML='<div class="bx-quote">近 '+list.length+' 次平均 <b>'+avg+' 小时</b></div><div class="bx-list">'+list.slice(0,4).map(function(r){return '<div class="bx-item"><span>'+r.d.slice(5)+'</span><b>'+r.h+' 小时</b></div>';}).join('')+'</div>';}
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxSleepH" type="number" step="0.5" placeholder="睡了几小时" style="max-width:130px"><button class="bx-btn sm" id="bxSleepAdd">记录</button></div>';
+  $('#bxSleepAdd',x).onclick=function(){var h=parseFloat($('#bxSleepH',x).value);if(!(h>0&&h<24)){toast('填 0-24 之间的小时数');return;}list.unshift({d:today(),h:h});ss(key,list.slice(0,30));$('#bxSleepH',x).value='';paint();};
+  paint();
+});
+T('life','🏃','运动打卡','★★★☆☆','每天动一动，记录好习惯',function(b,x){
+  var key='mx187_step_'+today(), n=ls(key,0);
+  function paint(){b.innerHTML='<div class="bx-big">'+n.toLocaleString()+'</div><div class="bx-quote">今日步数 '+(n>=8000?'达标，棒棒哒！🏃':'，目标 8000 步，动起来～')+'</div>';}
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxStepIn" type="number" placeholder="本次步数" style="max-width:110px"><button class="bx-btn sm" id="bxStepAdd">累计</button></div>';
+  $('#bxStepAdd',x).onclick=function(){var v=parseInt($('#bxStepIn',x).value);if(!(v>0))return;n+=v;ss(key,n);$('#bxStepIn',x).value='';paint();};
+  paint();
+});
+T('life','📅','日历速览','★★★☆☆','看看今天，规划月份',function(b,x){
+  var d=new Date(), y=d.getFullYear(), m=d.getMonth();
+  var first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  var h='<div class="bx-quote" style="text-align:center">'+y+' 年 '+(m+1)+' 月 '+d.getDate+' 日</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:11px">';
+  ['日','一','二','三','四','五','六'].forEach(function(w){h+='<b style="color:#7fbb63">'+w+'</b>';});
+  for(var i=0;i<first;i++)h+='<span></span>';
+  for(var dd=1;dd<=days;dd++)h+='<span style="'+(dd===d.getDate()?'background:#62a94f;color:#fff;border-radius:50%':'')+'">'+dd+'</span>';
+  h+='</div>';
+  b.innerHTML=h;
+  x.innerHTML='<button class="bx-btn ghost sm" id="bxCalSay">🔊 报今日</button>';
+  $('#bxCalSay',x).onclick=function(){voiceSay('今天是'+y+'年'+(m+1)+'月'+d.getDate()+'日，'+(['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()]));};
+});
+
+/* ---------- 工作小工具（9款，按频率） ---------- */
+T('work','⏱️','秒表计时','★★★★★','精确计时，专注一件事',function(b,x){
+  var st=0, base=0, timer=null, running=false;
+  function fmt(ms){var s=Math.floor(ms/1000),m=Math.floor(s/60);return ('0'+m).slice(-2)+':'+('0'+(s%60)).slice(-2)+'.'+('0'+Math.floor(ms%1000/10)).slice(-2);}
+  function paint(){b.innerHTML='<div class="bx-big" id="bxSwOut">'+fmt(st)+'</div>';}
+  x.innerHTML='<button class="bx-btn" id="bxSwGo">开始</button> <button class="bx-btn ghost" id="bxSwStop">暂停</button> <button class="bx-btn ghost sm" id="bxSwReset">重置</button>';
+  $('#bxSwGo',x).onclick=function(){if(running)return;running=true;base=Date.now()-st;timer=setInterval(function(){st=Date.now()-base;paint();},47);};
+  $('#bxSwStop',x).onclick=function(){running=false;clearInterval(timer);};
+  $('#bxSwReset',x).onclick=function(){running=false;clearInterval(timer);st=0;paint();};
+  paint();
+});
+T('work','✅','快速待办','★★★★★','今日要事，逐条击破',function(b,x){
+  var key='mx187_wtodo', list=ls(key,[]);
+  function paint(){b.innerHTML='<div class="bx-list">'+list.map(function(t,i){return '<div class="bx-item" data-i="'+i+'" style="cursor:pointer"><span>'+(t.done?'✅':'⬜')+'</span><span style="'+(t.done?'text-decoration:line-through;color:#9aa;flex:1':'flex:1')+'">'+esc(t.n)+'</span><span class="bx-del" data-i="'+i+'">✕</span></div>';}).join('')+(list.length?'':'<div style="font-size:11px;color:#93a486">添加今日待办吧～</div>')+'</div>';
+    $$('.bx-item',b).forEach(function(r){r.onclick=function(e){if(e.target.classList.contains('bx-del'))return;var i=+r.dataset.i;list[i].done=!list[i].done;ss(key,list);paint();};});
+    $$('.bx-del',b).forEach(function(d){d.onclick=function(e){e.stopPropagation();list.splice(+d.dataset.i,1);ss(key,list);paint();};}); }
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxWTodoIn" placeholder="添加待办事项"><button class="bx-btn sm" id="bxWTodoAdd">＋</button></div>';
+  $('#bxWTodoAdd',x).onclick=function(){var n=$('#bxWTodoIn',x).value.trim();if(!n)return;list.push({n:n,done:false});ss(key,list);$('#bxWTodoIn',x).value='';paint();};
+  paint();
+});
+T('work','💡','灵感速记','★★★★☆','灵感一闪，马上抓住',function(b,x){
+  var key='mx187_idea', list=ls(key,[]);
+  function paint(){b.innerHTML='<div class="bx-list">'+list.slice(0,8).map(function(n,i){return '<div class="bx-item"><span style="flex:1">💡 '+esc(n.t)+'</span><span class="bx-del" data-i="'+i+'">✕</span></div>';}).join('')+(list.length?'':'<div style="font-size:11px;color:#93a486">灵感来了就记下～</div>')+'</div>';
+    $$('.bx-del',b).forEach(function(d){d.onclick=function(){list.splice(+d.dataset.i,1);ss(key,list);paint();};}); }
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxIdeaIn" placeholder="记下这个灵感…"><button class="bx-btn sm" id="bxIdeaAdd">记</button></div>';
+  $('#bxIdeaAdd',x).onclick=function(){var t=$('#bxIdeaIn',x).value.trim();if(!t)return;list.unshift({t:t,d:today()});ss(key,list.slice(0,50));$('#bxIdeaIn',x).value='';paint();voiceSay('灵感记下啦，好点子别溜走！');};
+  paint();
+});
+T('work','📋','日报生成','★★★★☆','一键套模板，日报不犯难',function(b,x){
+  b.innerHTML='<div class="bx-quote" id="bxRepOut">点下方按钮，生成今日日报模板～</div>';
+  x.innerHTML='<button class="bx-btn" id="bxRepGen">生成日报</button> <button class="bx-btn ghost sm" id="bxRepCopy">复制</button>';
+  $('#bxRepGen',x).onclick=function(){var t='【'+today()+' 工作日报】\n1. 今日完成：\n2. 进行中：\n3. 遇到的问题：\n4. 明日计划：';$('#bxRepOut').textContent=t;};
+  $('#bxRepCopy',x).onclick=function(){var t=$('#bxRepOut').textContent;try{navigator.clipboard.writeText(t);toast('已复制');}catch(e){toast('长按可选择复制');}};
+});
+T('work','⌛','会议倒计时','★★★☆☆','设定会议时长，到点提醒',function(b,x){
+  var timer=null, left=0;
+  function paint(){var m=Math.floor(left/60),s=left%60;b.innerHTML='<div class="bx-big" id="bxMtOut">'+('0'+m).slice(-2)+':'+('0'+s).slice(-2)+'</div>';}
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxMtMin" type="number" placeholder="分钟" style="max-width:80px"><button class="bx-btn sm" id="bxMtGo">开始</button><button class="bx-btn ghost sm" id="bxMtStop">停</button></div>';
+  $('#bxMtGo',x).onclick=function(){var m=parseInt($('#bxMtMin',x).value)||5;left=m*60;clearInterval(timer);timer=setInterval(function(){left--;if(left<=0){clearInterval(timer);left=0;voiceSay('会议时间到啦，杉杉提醒你收尾哦！');}paint();},1000);paint();};
+  $('#bxMtStop',x).onclick=function(){clearInterval(timer);};
+  paint();
+});
+T('work','📌','工作备忘','★★★☆☆','重要事项，随手备忘',function(b,x){
+  var key='mx187_wmemo';
+  b.innerHTML='<textarea class="bx-input" id="bxMemoTxt" rows="3" placeholder="记下工作备忘…">'+esc(ls(key,''))+'</textarea>';
+  x.innerHTML='<button class="bx-btn sm" id="bxMemoSave">保存</button> <button class="bx-btn ghost sm" id="bxMemoSay">🔊 朗读</button>';
+  $('#bxMemoSave',x).onclick=function(){ss(key,$('#bxMemoTxt').value);toast('备忘已保存');};
+  $('#bxMemoSay',x).onclick=function(){voiceSay($('#bxMemoTxt').value||'还没有备忘内容。');};
+});
+T('work','✉️','邮件主题','★★★☆☆','起个得体的邮件标题',function(b,x){
+  b.innerHTML='<div class="bx-quote" id="bxSubjOut">输入事由，帮你生成标题～</div>';
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxSubjIn" placeholder="如：方案修改"><button class="bx-btn sm" id="bxSubjGo">生成</button></div>';
+  $('#bxSubjGo',x).onclick=function(){var t=$('#bxSubjIn',x).value.trim();if(!t)return;var opts=['关于'+t+'的沟通','【请查阅】'+t+'相关事宜','关于'+t+'的进展同步','Re: '+t+' — 烦请确认'];var out=opts[Math.floor(Math.random()*opts.length)];$('#bxSubjOut').textContent=out;voiceSay('推荐标题：'+out);};
+});
+T('work','🗓️','周计划','★★☆☆☆','一周安排，一目了然',function(b,x){
+  var key='mx187_week', list=ls(key,[]);
+  function paint(){b.innerHTML='<div class="bx-list">'+list.map(function(t,i){return '<div class="bx-item"><span style="flex:1">'+esc(t.d)+' '+esc(t.t)+'</span><span class="bx-del" data-i="'+i+'">✕</span></div>';}).join('')+(list.length?'':'<div style="font-size:11px;color:#93a486">安排一周计划吧～</div>')+'</div>';
+    $$('.bx-del',b).forEach(function(d){d.onclick=function(){list.splice(+d.dataset.i,1);ss(key,list);paint();};}); }
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxWkD" placeholder="周几" style="max-width:70px"><input class="bx-input" id="bxWkT" placeholder="事项"><button class="bx-btn sm" id="bxWkAdd">＋</button></div>';
+  $('#bxWkAdd',x).onclick=function(){var d=$('#bxWkD',x).value.trim(),t=$('#bxWkT',x).value.trim();if(!t)return;list.push({d:d||'本周',t:t});ss(key,list);$('#bxWkD',x).value='';$('#bxWkT',x).value='';paint();};
+  paint();
+});
+T('work','🔊','专注白噪音','★★☆☆☆','轻音伴读，进入心流',function(b,x){
+  var on=false,ctx=null,src=null;
+  b.innerHTML='<div class="bx-quote">柔和的自然白噪音，帮你静心专注（点开始后调节音量）</div>';
+  x.innerHTML='<button class="bx-btn" id="bxNoiseGo">▶ 开始</button> <button class="bx-btn ghost sm" id="bxNoiseStop">■ 停止</button>';
+  $('#bxNoiseGo',x).onclick=function(){try{if(on)return;ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();var len=ctx.sampleRate*2,buf=ctx.createBuffer(1,len,ctx.sampleRate),dat=buf.getChannelData(0);for(var i=0;i<len;i++)dat[i]=(Math.random()*2-1)*0.12;src=ctx.createBufferSource();src.buffer=buf;src.loop=true;var g=ctx.createGain();g.gain.value=0.25;src.connect(g);g.connect(ctx.destination);src.start();on=true;toast('白噪音已开启');}catch(e){toast('当前浏览器不支持');}};
+  $('#bxNoiseStop',x).onclick=function(){try{if(src){src.stop();src=null;}on=false;}catch(e){}};
+});
+/* ---------- 其他工具（9款，按频率） ---------- */
+T('other','🎲','随机抽签','★★★★★','选择困难？抽一个',function(b,x){
+  b.innerHTML='<div class="bx-big" id="bxDrawOut">?</div>';
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxDrawIn" placeholder="选项用逗号分隔：A,B,C"><button class="bx-btn sm" id="bxDrawGo">抽</button></div>';
+  $('#bxDrawGo',x).onclick=function(){var arr=$('#bxDrawIn',x).value.split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean);if(arr.length<2){toast('至少填两个选项');return;}var r=arr[Math.floor(Math.random()*arr.length)];$('#bxDrawOut').textContent=r;voiceSay('抽中啦：'+r+'！');};
+});
+T('other','🪙','抛硬币','★★★★☆','正反面，交给运气',function(b,x){
+  b.innerHTML='<div class="bx-big" id="bxCoinOut">🪙</div>';
+  x.innerHTML='<button class="bx-btn" id="bxCoinGo">抛一下</button>';
+  $('#bxCoinGo',x).onclick=function(){var r=Math.random()<0.5?'正面':'反面';$('#bxCoinOut').textContent=r==='正面'?'😀 正面':'🪙 反面';voiceSay('硬币落地，是'+r+'！');};
+});
+T('other','✊','石头剪刀布','★★★★☆','和杉杉玩一局',function(b,x){
+  b.innerHTML='<div class="bx-quote" id="bxRpsOut">选一个，和杉杉比一局～</div>';
+  x.innerHTML='<button class="bx-btn sm" id="bxRps0">✊ 石头</button><button class="bx-btn sm" id="bxRps1">✌️ 剪刀</button><button class="bx-btn sm" id="bxRps2">🖐 布</button>';
+  [0,1,2].forEach(function(p){$('#bxRps'+p,x).onclick=function(){var names=['石头','剪刀','布'],ai=Math.floor(Math.random()*3),res=p===ai?'平局':((p+1)%3===ai?'你赢了':'杉杉赢了');$('#bxRpsOut').textContent='你出'+names[p]+'，杉杉出'+names[ai]+' → '+res;voiceSay(res==='你赢了'?'哇，你赢了，好厉害！':'杉杉出的是'+names[ai]+'，再来一局？');};});
+});
+T('other','📏','单位换算','★★★☆☆','常用长度重量换算',function(b,x){
+  b.innerHTML='<div class="bx-quote" id="bxUnitOut">输入数值，选择换算～</div>';
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxUnitV" type="number" placeholder="数值" style="max-width:80px"><select class="bx-input" id="bxUnitSel" style="max-width:180px"><option value="km">公里→英里</option><option value="mi">英里→公里</option><option value="kg">公斤→磅</option><option value="lb">磅→公斤</option><option value="c">℃→℉</option><option value="f">℉→℃</option></select><button class="bx-btn sm" id="bxUnitGo">换算</button></div>';
+  $('#bxUnitGo',x).onclick=function(){var v=parseFloat($('#bxUnitV',x).value),t=$('#bxUnitSel',x).value;if(isNaN(v)){toast('填数值');return;}var r,o={km:' 英里',mi:' 公里',kg:' 磅',lb:' 公斤',c:' ℉',f:' ℃'};
+    if(t==='km')r=v*0.6214;else if(t==='mi')r=v*1.6093;else if(t==='kg')r=v*2.2046;else if(t==='lb')r=v*0.4536;else if(t==='c')r=v*9/5+32;else r=(v-32)*5/9;
+    $('#bxUnitOut').textContent=v+' → '+(Math.round(r*100)/100)+o[t];};
+});
+T('other','🔑','密码生成','★★★☆☆','随机强密码，安全好记',function(b,x){
+  b.innerHTML='<div class="bx-quote" id="bxPwdOut">点生成，得一个随机密码～</div>';
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxPwdLen" type="number" value="12" style="max-width:70px"><button class="bx-btn sm" id="bxPwdGo">生成</button></div>';
+  $('#bxPwdGo',x).onclick=function(){var n=Math.min(32,Math.max(6,parseInt($('#bxPwdLen',x).value)||12)),cs='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%',p='';for(var i=0;i<n;i++)p+=cs[Math.floor(Math.random()*cs.length)];$('#bxPwdOut').textContent=p;};
+});
+T('other','📖','每日一句','★★★☆☆','名句箴言，元气满满',function(b,x){
+  var Q=['尺有所短，寸有所长。','千里之行，始于足下。','读书破万卷，下笔如有神。','宝剑锋从磨砺出，梅花香自苦寒来。','世上无难事，只怕有心人。','书山有路勤为径，学海无涯苦作舟。','明溪山水甲天下，杉王精神励后人。','今日事，今日毕。'];
+  var d=today(),idx=0;for(var i=0;i<d.length;i++)idx+=d.charCodeAt(i);idx=idx%Q.length;
+  b.innerHTML='<div class="bx-quote" style="font-size:14px">“'+Q[idx]+'”</div>';
+  x.innerHTML='<button class="bx-btn ghost sm" id="bxQSay">🔊 读一读</button>';
+  $('#bxQSay',x).onclick=function(){voiceSay(Q[idx]);};
+});
+T('other','⏳','自定义倒计时','★★★☆☆','重要时刻，倒数提醒',function(b,x){
+  var key='mx187_cd', end=ls(key,0),timer=null;
+  function paint(){var left=Math.max(0,Math.ceil((end-Date.now())/1000));var d=Math.floor(left/86400),h=Math.floor(left%86400/3600),m=Math.floor(left%3600/60),s=left%60;
+    b.innerHTML='<div class="bx-big">'+(d?d+'天 ':'')+('0'+h).slice(-2)+':'+('0'+m).slice(-2)+':'+('0'+s).slice(-2)+'</div>';}
+  x.innerHTML='<div class="bx-row"><input class="bx-input" id="bxCdMin" type="number" placeholder="分钟后" style="max-width:90px"><button class="bx-btn sm" id="bxCdGo">开始</button></div>';
+  $('#bxCdGo',x).onclick=function(){var m=parseFloat($('#bxCdMin',x).value)||1;end=Date.now()+m*60000;ss(key,end);clearInterval(timer);timer=setInterval(paint,1000);paint();voiceSay('倒计时开始，'+m+'分钟后杉杉提醒你！');};
+  if(end>Date.now())timer=setInterval(paint,1000);
+  paint();
+});
+T('other','😊','心情打卡','★★★☆☆','记录心情，看见情绪',function(b,x){
+  var key='mx187_mood_'+today(), mood=ls(key,'');
+  var emos=['😄开心','🙂平静','😔低落','😤烦躁','🥰幸福','😴疲惫'];
+  function paint(){b.innerHTML='<div class="bx-quote">'+(mood?'今天的心情：<b>'+esc(mood)+'</b>':'今天心情怎么样？点一个记录～')+'</div>';}
+  x.innerHTML=emos.map(function(e,i){return '<button class="bx-btn sm bxMood" data-e="'+e+'">'+e+'</button>';}).join('');
+  $$('.bxMood',x).forEach(function(btn){btn.onclick=function(){mood=btn.dataset.e;ss(key,mood);paint();voiceSay('记录下'+mood+'的心情，杉杉陪着你～');};});
+  paint();
+});
+T('other','🔊','声音设置','★★★★★','萌娃/男童/女童声，随等级解锁',function(b,x){
+  function paint(){
+    var idx=levelIdx(), un=voiceUnlocked(), cur=curStyle();
+    var L=(window.MX_PET&&window.MX_PET.levels)||[];
+    var name=(L[idx]&&L[idx].name)||('Lv.'+(idx+1));
+    var h='<div class="vset-cur">杉杉当前 <b>Lv.'+(idx+1)+' '+esc(name)+'</b><br>当前音色：<b>'+VOICES[cur].emo+' '+VOICES[cur].name+'</b><br><small>'+(un?'已解锁全部童声音色，可自由切换～':'升到 Lv.7 后可再选男童/女童声')+'</small></div>';
+    Object.keys(VOICES).forEach(function(k){var v=VOICES[k],lock=(k!=='meng'&&!un);
+      h+='<div class="vset-opt'+(cur===k?' on':'')+(lock?' lock':'')+'" data-k="'+k+'">'+v.emo+' '+v.name+(lock?' 🔒':'')+'</div>';});
+    h+='<div style="font-size:10.5px;color:#93a486;margin-top:7px;line-height:1.6">'+VOICES[cur].desc+'。等级越高，杉杉的形象与声音越成熟：萌娃萌萌 → 萌萌女童 → 阳光男童。</div>';
+    b.innerHTML=h;
+    $$('.vset-opt',b).forEach(function(o){o.onclick=function(){window.MX_VOICE.setStyle(o.dataset.k);paint();};});
+  }
+  x.innerHTML='<button class="bx-btn sm" id="bxVSay">🔊 试听一句</button>';
+  $('#bxVSay',x).onclick=function(){voiceSay('你好呀，我是杉杉，声音萌萌的，陪你一起生活！');};
+  paint();
+});
+
+/* ==================== 三、面板渲染与入口 ==================== */
+var built={life:false,work:false,other:false};
+function buildView(cat){
+  if(built[cat]) return; built[cat]=true;
+  var view=$('#bxView'+cat.charAt(0).toUpperCase()+cat.slice(1)); if(!view) return;
+  var arr=TOOLS[cat], h='<div class="bx-grid">';
+  arr.forEach(function(t,i){ h+='<div class="bx-card"><div class="bx-ct"><span class="ic">'+t.ic+'</span>'+t.name+'<span class="bx-freq">'+t.freq+'</span></div>'
+    +'<div class="bx-ch" id="bx_'+cat+'_'+i+'">'+t.sub+'</div><div id="bx_'+cat+'_'+i+'_x"></div></div>'; });
+  h+='</div>'; view.innerHTML=h;
+  arr.forEach(function(t,i){ var b=$('#bx_'+cat+'_'+i), x=$('#bx_'+cat+'_'+i+'_x');
+    try{ t.init(b,x); }catch(e){ b.innerHTML='<span style="color:#b56a5a;font-size:11px">工具加载异常</span>'; }
+  });
+}
+function openBox(cat){
+  cat=cat||'life';
+  var ov=$('#ovBox'); if(!ov) return;
+  $$('.bx-tab').forEach(function(t){ t.classList.toggle('on',t.dataset.v===cat); });
+  $$('.bx-view').forEach(function(v){ v.classList.remove('on'); });
+  var v=$('#bxView'+cat.charAt(0).toUpperCase()+cat.slice(1)); if(v) v.classList.add('on');
+  buildView(cat);
+  try{ if(typeof openOv==='function') openOv('ovBox'); else ov.classList.add('show'); }catch(e){ ov.classList.add('show'); }
+  injectVoiceBtn();
+}
+function closeBox(){ try{ if(typeof closeOv==='function') closeOv('ovBox'); else $('#ovBox').classList.remove('show'); }catch(e){ $('#ovBox').classList.remove('show'); } }
+
+function injectEntries(){
+  /* 巡游杉杉生活助理面板加百宝箱入口 */
+  try{
+    var ov=$('#ovAsst');
+    if(ov && !$('#mx187BoxEntry')){
+      var e=document.createElement('div'); e.id='mx187BoxEntry';
+      e.style.cssText='margin:10px 16px 2px;padding:11px 13px;border-radius:12px;cursor:pointer;background:linear-gradient(135deg,#f0f8e8,#e2f1d4);border:2px solid #c4dfae;display:flex;align-items:center;gap:10px;';
+      e.innerHTML='<span style="font-size:24px">🧰</span><span style="flex:1;text-align:left"><b style="font-size:14px;color:#24532f;font-family:serif">杉杉百宝箱 · 上新</b><small style="display:block;font-size:10.5px;color:#5f8a4c;margin-top:2px">生活9 + 工作9 + 其他9 款桌面小工具</small></span><span style="font-size:18px;color:#62a94f">›</span>';
+      e.onclick=function(ev){ ev.stopPropagation(); closeBox&&$('#ovAsst').classList.remove('show'); try{closeOv('ovAsst');}catch(err){} openBox('life'); };
+      var panel=ov.querySelector('.panel'), grid=$('.mx179-grid',ov);
+      if(panel){ if(grid) panel.insertBefore(e,grid); else panel.appendChild(e); }
+    }
+  }catch(err){}
+  /* 工作助理面板加百宝箱入口 */
+  try{
+    var wv=$('#ovWork');
+    if(wv && !$('#mx187BoxEntryW')){
+      var ew=document.createElement('div'); ew.id='mx187BoxEntryW';
+      ew.style.cssText='margin:10px 16px 2px;padding:11px 13px;border-radius:12px;cursor:pointer;background:linear-gradient(135deg,#f0f8e8,#e2f1d4);border:2px solid #c4dfae;display:flex;align-items:center;gap:10px;';
+      ew.innerHTML='<span style="font-size:24px">🧰</span><span style="flex:1;text-align:left"><b style="font-size:14px;color:#24532f;font-family:serif">杉杉百宝箱 · 上新</b><small style="display:block;font-size:10.5px;color:#5f8a4c;margin-top:2px">记账 / 便签 / 秒表 / 抽签 / 声音设置…</small></span><span style="font-size:18px;color:#62a94f">›</span>';
+      ew.onclick=function(ev){ ev.stopPropagation(); try{closeOv('ovWork');}catch(err){} openBox('work'); };
+      var wpanel=wv.querySelector('.panel'), wtabs=$('.wk-tabs',wv);
+      if(wpanel){ if(wtabs) wpanel.insertBefore(ew,wtabs); else wpanel.appendChild(ew); }
+    }
+  }catch(err){}
+}
+function boot(){
+  var ov=$('#ovBox'); if(!ov) return;
+  $$('.bx-tab').forEach(function(t){ t.onclick=function(){ openBox(t.dataset.v); }; });
+  var bc=$('#bxClose'); if(bc) bc.onclick=closeBox;
+  ov.addEventListener('click',function(e){ if(e.target===ov) closeBox(); });
+  injectVoiceBtn(); injectEntries();
+}
+/* 等面板就绪后注入入口 */
+var tries=0, wait=setInterval(function(){ tries++; injectEntries(); injectVoiceBtn(); if(tries>40) clearInterval(wait); },500);
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+
+window.MX_BOX={ open:openBox, close:closeBox, tools:TOOLS,
+  tabs:function(){ return {life:TOOLS.life.length,work:TOOLS.work.length,other:TOOLS.other.length}; } };
+/* 巡游杉杉接口补充百宝箱与声音入口 */
+try{ if(window.MX_ROAM){
+  window.MX_ROAM.box=function(){openBox('life');};
+  window.MX_ROAM.voice=function(){openBox('other');};
+  window.MX_ROAM.refreshMascot=function(){
+    try{ var body=document.querySelector('#mxRoam .rm-body');
+      if(body && window.MX_PET && window.MX_PET.svg) body.innerHTML=window.MX_PET.svg(levelIdx());
+      var lv=document.getElementById('rmLv'); var L=(window.MX_PET&&window.MX_PET.levels)||[];
+      if(lv) lv.textContent='Lv.'+(levelIdx()+1)+' '+(L[levelIdx()]&&L[levelIdx()].name?L[levelIdx()].name:'杉杉');
+    }catch(e){}
+  };
+} }catch(e){}
+})();
+</script>
+<!-- ============ v187 END ============ -->
+
+
+
 </body>
 </html>
