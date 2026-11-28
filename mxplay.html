@@ -17011,6 +17011,102 @@ try{ if(window.MX_ROAM){
 </script>
 <!-- ============ v187 END ============ -->
 
+<!-- ============ v188 BEGIN: 杉杉助理 · 本游戏简介(杉杉萌娃语音播报) ============ -->
+<style id="mx188css">
+/* 游戏简介卡（生活助理 + 百宝箱通用） */
+.mx188-intro{background:linear-gradient(135deg,#fff9e8,#fdf3d8);border:2px solid #e8cf8a;border-radius:13px;
+  padding:10px 12px;box-shadow:0 2px 8px rgba(140,110,40,.1);}
+.mx188-intro .mx188-t{font-size:14.5px;font-weight:800;color:#7a5b1e;font-family:serif;margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+.mx188-intro .mx188-t .ic{font-size:18px;}
+.mx188-intro .mx188-b{font-size:12px;color:#6b5528;line-height:1.7;}
+.mx188-intro .mx188-b.more{display:none;}
+.mx188-intro.expanded .mx188-b.more{display:block;}
+.mx188-intro .mx188-btns{margin-top:7px;}
+.mx188-say{padding:6px 12px;border:none;border-radius:8px;cursor:pointer;font-size:11.5px;font-weight:700;
+  background:linear-gradient(135deg,#e0a83a,#c1851f);color:#fff;box-shadow:0 2px 6px rgba(160,110,20,.25);}
+.mx188-stop{padding:6px 12px;border:1px solid #d8b96a;border-radius:8px;cursor:pointer;font-size:11.5px;font-weight:700;
+  background:#fff8e6;color:#8a6a24;}
+.mx188-expand{background:none;border:none;color:#a1791f;font-size:11px;cursor:pointer;text-decoration:underline;padding:0 4px;}
+/* 百宝箱顶部横幅 */
+#bxViewOther .mx188-banner{padding:6px 0 10px;}
+/* 生活助理里做成网格卡片 */
+.mx179-grid .mx188-intro{grid-column:1/-1;}
+</style>
+<script id="mx188js">
+(function(){
+'use strict';
+function $(s,r){ return (r||document).querySelector(s); }
+function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+var TEXT='百年明中，一脉书香。校史连连看把老校舍、恩师、同窗与明溪山水封进卡片，轻点配对，往事重现。闯关积分，抚育红豆杉长成明溪杉王；还能走进洞天福地耕读养生，挑战飞机大战、掼蛋等小游戏。这里不只有游戏，更是一封写给青春的明信片——献给每一位走过明中的人。';
+var SHORT='一款把明中百年校史、明溪山水与小游戏融合在一起的互动作品。轻点配对重现往事，闯关养成杉杉，还有洞天福地与多款小游戏。';
+var saying=false, sayTimer=null;
+
+function updateBtns(){
+  $$('.mx188-say').forEach(function(b){ b.textContent=saying?'🔊 播报中…':'🔊 杉杉讲简介'; b.disabled=!!saying; });
+  $$('.mx188-stop').forEach(function(b){ b.style.display=saying?'inline-block':'none'; });
+}
+function say() {
+  try{
+    if(window.MX_VOICE && window.MX_VOICE.say) window.MX_VOICE.say(TEXT);
+    else if(window.speakTTS) window.speakTTS(TEXT,'female');
+    saying=true; updateBtns();
+    clearTimeout(sayTimer); sayTimer=setTimeout(function(){ saying=false; updateBtns(); },30000);
+  }catch(e){}
+}
+function stop(){ try{ if(window.MX_VOICE) window.MX_VOICE.stop(); else if(window.speakTTS) window.speakTTS(''); }catch(e){}
+  saying=false; clearTimeout(sayTimer); updateBtns(); }
+
+/* 简介卡 HTML（两处共用，id 后缀区分） */
+function cardHtml(sfx,full){
+  var head=full?SHORT:TEXT;
+  return '<div class="mx188-intro" id="mx188Card'+sfx+'">'
+    +'<div class="mx188-t"><span class="ic">📖</span>本游戏简介<span style="margin-left:auto;font-size:10px;color:#a1791f">杉杉语音播报</span></div>'
+    +'<div class="mx188-b">'+head+(full?'<button class="mx188-expand" data-sfx="'+sfx+'">展开全文</button>':'')+'</div>'
+    +'<div class="mx188-b more">'+(full?'':TEXT)+'</div>'
+    +'<div class="mx188-btns"><button class="mx188-say">🔊 杉杉讲简介</button> <button class="mx188-stop" style="display:none">■ 停止</button></div>'
+    +'</div>';
+}
+function bindCard(root){
+  $$('.mx188-say',root).forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); say(); }; });
+  $$('.mx188-stop',root).forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); stop(); }; });
+  $$('.mx188-expand',root).forEach(function(b){ b.onclick=function(e){ e.stopPropagation();
+    var c=$('#mx188Card'+b.dataset.sfx); if(c) c.classList.add('expanded'); b.style.display='none'; }; });
+}
+/* 生活助理注入 */
+function injectAsst(){
+  var ov=$('#ovAsst'); if(!ov) return;
+  var grid=$('.mx179-grid',ov); if(!grid || $('#mx188CardAsst')) return;
+  var wrap=document.createElement('div'); wrap.innerHTML=cardHtml('Asst',true);
+  grid.insertBefore(wrap.firstChild,grid.firstChild);
+  bindCard($('#mx188CardAsst').parentNode);
+  updateBtns();
+}
+/* 百宝箱其他tab顶部横幅注入 */
+function injectBox(){
+  var view=$('#bxViewOther'); if(!view || $('#mx188CardBox')) return;
+  var wrap=document.createElement('div'); wrap.className='mx188-banner'; wrap.innerHTML=cardHtml('Box',false);
+  view.insertBefore(wrap,view.firstChild);
+  bindCard($('#mx188CardBox').parentNode);
+  updateBtns();
+}
+/* 劫持 openBox：打开其他tab时确保横幅存在 */
+try{
+  if(window.MX_BOX && typeof window.MX_BOX.open==='function'){
+    var _open=window.MX_BOX.open;
+    window.MX_BOX.open=function(cat){ _open(cat); if(cat==='other') setTimeout(injectBox,0); };
+  }
+}catch(e){}
+/* 定时注入（等面板就绪） */
+var n=0, t=setInterval(function(){ n++; injectAsst(); injectBox(); if(n>60) clearInterval(t); },500);
+injectAsst(); injectBox();
+
+window.MX_INTRO={ say:say, stop:stop, text:TEXT };
+})();
+</script>
+<!-- ============ v188 END ============ -->
+
+
+
 
 
 </body>
