@@ -16079,7 +16079,7 @@ function today(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth(
 
 /* ==================== 一、巡游杉杉 ==================== */
 var RM_KEY='mx185_roam';
-var roam=ls(RM_KEY,{x:null,y:null,scale:1});
+var roam=ls(RM_KEY,{x:null,y:null,scale:0.75}); /* v192 默认棋子大小(约66px) */
 var el=null, body=null, bubble=null, hint=null;
 var dragging=false, dragMoved=false, startX=0, startY=0, origX=0, origY=0;
 var lastTap=0, tapTimer=null;
@@ -16122,6 +16122,8 @@ function buildRoam(){
   document.body.appendChild(el);
   body=$('.rm-body',el); bubble=$('#rmBubble'); hint=$('#rmHint');
   renderMascot();
+  /* v192 首次升级：把老用户的默认大小归一到棋子大小(0.75)与右下角 */
+  try{ if(!ls('mx192_roam_v2',false)){ roam.scale=0.75; roam.x=null; roam.y=null; ss('mx192_roam_v2',true); } }catch(e){}
   if(roam.x==null||roam.y==null) defaultPos();
   clampPos(); applyTransform(); persist();
 
@@ -16455,8 +16457,15 @@ window.MX_ROAM={
   assistant:openAssistantHub,
   work:openWork,
   chat:function(k){ popupBubble(pickLine(k||'life'),true); },
-  reset:function(){ roam={x:null,y:null,scale:1}; defaultPos(); clampPos(); applyTransform(); persist(); },
-  state:function(){ return {x:roam.x,y:roam.y,scale:roam.scale}; }
+  reset:function(){ roam={x:null,y:null,scale:0.75}; defaultPos(); clampPos(); applyTransform(); persist(); },
+  state:function(){ return {x:roam.x,y:roam.y,scale:roam.scale}; },
+  /* v192 放大缩小接口（供手势/双击/按钮调用） */
+  scale:function(v){ setScale(v); return roam.scale; },
+  sizeStep:function(dir){ setScale(roam.scale+(dir>0?0.18:-0.18)); return roam.scale; },
+  place:function(x,y){ roam.x=x; roam.y=y; clampPos(); applyTransform(); persist(); },
+  toCorner:function(){ defaultPos(); clampPos(); applyTransform(); persist(); },
+  say:function(t){ if(t) say(t); },
+  bubble:function(t,hold){ popupBubble(t,!!hold); }
 };
 })();
 </script>
@@ -16641,10 +16650,16 @@ function curStyle(){
   return LEVEL_VOICE[Math.min(8,levelIdx())];
 }
 var _netA=null;
+/* v192 修复：原 stopVoice 调用 window.speakTTS('')，而该函数被下方劫持后空文本又回调 stopVoice，
+   形成无限递归（实测一次发声触发 2800+ 次空调用），导致杉杉语音卡死无声。加 _stopping 重入锁截断。 */
+var _stopping=false;
 function stopVoice(){
+  if(_stopping) return;
+  _stopping=true;
   try{ if(_netA){ _netA.pause(); _netA.onended=null; _netA.onerror=null; _netA=null; } }catch(e){}
   try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
-  try{ if(typeof window.speakTTS==='function') window.speakTTS(''); }catch(e){}
+  try{ if(typeof _baseSpeak==='function') _baseSpeak(''); }catch(e){}
+  _stopping=false;
 }
 function hasZhVoice(){
   try{ var vs=(window.speechSynthesis&&speechSynthesis.getVoices&&speechSynthesis.getVoices())||[];
@@ -17547,6 +17562,214 @@ window.MX_V190={seal10:setSeal10,seal50:setSeal50,moveFootprint:moveFootprint};
 })();
 </script>
 <!-- ============ v191 END ============ -->
+
+<!-- ============ v192 BEGIN: 杉杉缩放手势 + 定时漂移翻滚巡游 + 爆笑播报 ============ -->
+<style id="mx192css">
+/* 杉杉缩放提示把手（紧凑，不占地方） */
+#mxRoam .rm-zoomhint{position:absolute; right:-6px; top:16px; width:18px; height:18px; border-radius:50%;
+  background:linear-gradient(135deg,#fff6dd,#f0d79a); border:1.5px solid #b78b3d; color:#8a5e1e;
+  font-size:11px; line-height:15px; text-align:center; cursor:pointer; z-index:5;
+  box-shadow:0 2px 5px rgba(120,80,20,.3);}
+/* 巡游漂移翻滚动画：整体绕行 + 自旋 + 弹性 */
+#mxRoam.mx192-parade{z-index:120!important; transition:none!important;}
+#mxRoam.mx192-parade .rm-body{animation:mx192Tumble 1.1s ease-in-out infinite;}
+@keyframes mx192Tumble{
+  0%{transform:rotate(0deg) scale(1);}
+  25%{transform:rotate(90deg) scale(1.12) translateY(-6px);}
+  50%{transform:rotate(180deg) scale(.92);}
+  75%{transform:rotate(270deg) scale(1.1) translateY(-4px);}
+  100%{transform:rotate(360deg) scale(1);}
+}
+/* 巡游尾迹光点 */
+.mx192-spark{position:fixed; width:8px; height:8px; border-radius:50%; pointer-events:none; z-index:119;
+  background:radial-gradient(circle,#fff3b0,#f0a93c); box-shadow:0 0 8px #ffcf5e; animation:mx192Fade .7s forwards;}
+@keyframes mx192Fade{to{opacity:0; transform:scale(.2);}}
+/* 播报中的诙谐气泡强化 */
+#mxRoam .rm-bubble.mx192-laugh{background:#fff8e0; border-color:#e0a83a; font-size:12.5px; color:#7a4a16;}
+/* v192b 右下角杉杉的气泡避免溢出屏幕：贴右时向左展开 */
+#mxRoam.mx192-edge .rm-bubble{left:auto!important; right:-6px; transform:translateY(6px);}
+#mxRoam.mx192-edge .rm-bubble::after{left:auto; right:20px;}
+#mxRoam.mx192-edge .rm-bubble.show{transform:translateY(0);}
+</style>
+<script id="mx192js">
+(function(){
+'use strict';
+function byId(id){ return document.getElementById(id); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+/* ============ 一、放大缩小（双击 / 双指捏合 / 把手点击） ============ */
+var lastZoomTap=0, pinchStart=0, pinchScale=1;
+function ensureHandle(){
+  var el=byId('mxRoam'); if(!el||el.dataset.v192h) return;
+  el.dataset.v192h='1';
+  var h=document.createElement('div'); h.className='rm-zoomhint'; h.id='rmZoomHint';
+  h.title='点一下放大 · 双击杉杉也可切换大小'; h.textContent='⤢';
+  el.appendChild(h);
+  h.addEventListener('click',function(e){ e.stopPropagation(); stepZoom(); });
+}
+function stepZoom(){
+  try{
+    var st=window.MX_ROAM&&window.MX_ROAM.state?window.MX_ROAM.state():{scale:1};
+    var nx=st.scale>=1.25?0.75:(Math.round((st.scale+0.18)*100)/100);
+    if(window.MX_ROAM&&window.MX_ROAM.scale) window.MX_ROAM.scale(nx);
+    showToast('杉杉大小 '+Math.round(nx*100)+'%');
+  }catch(e){}
+}
+function bindZoom(){
+  var el=byId('mxRoam'); if(!el||el.dataset.v192z) return;
+  el.dataset.v192z='1';
+  /* 双击放大缩小（v190 已有 dblclick 兜底，这里统一走 MX_ROAM.scale 保证状态同步） */
+  el.addEventListener('dblclick',function(e){
+    if(e.target.closest('.rm-bubble')||e.target.closest('.rm-zoomhint')) return;
+    e.stopPropagation(); stepZoom();
+  },true);
+  /* 双指捏合缩放 */
+  var pts={};
+  el.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){
+      var a=e.touches[0],b=e.touches[1];
+      pinchStart=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+      var st=window.MX_ROAM&&window.MX_ROAM.state?window.MX_ROAM.state():{scale:1};
+      pinchScale=st.scale;
+    }
+  },{passive:true});
+  el.addEventListener('touchmove',function(e){
+    if(e.touches.length===2&&pinchStart>0){
+      var a=e.touches[0],b=e.touches[1];
+      var d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+      var nx=clamp(Math.round(pinchScale*(d/pinchStart)*100)/100,0.65,1.5);
+      if(window.MX_ROAM&&window.MX_ROAM.scale) window.MX_ROAM.scale(nx);
+      e.preventDefault();
+    }
+  },{passive:false});
+  el.addEventListener('touchend',function(e){ if(e.touches.length<2) pinchStart=0; },{passive:true});
+}
+
+/* ============ 二、整点起每15分钟 · 漂移翻滚巡游全场 ============ */
+var PARADE_MS=10000, REPORT_MS=10000;
+var JOKES=[
+  '报告！本杉刚才绕全场漂移翻滚了十圈，差点把自己甩出屏幕，嘿嘿～🌪',
+  '巡游完毕！路过棋盘看见你在发呆，杉杉决定——陪你再玩一局！😜',
+  '叮！杉杉巡游播报：今日宜通关、宜充能、宜夸我可爱，忌摸鱼～🐟',
+  '我把整个屏幕溜达了一圈，顺便给棋子们打了个招呼，它们都说你好！😄',
+  '翻滚十秒，烦恼全消！杉杉宣布：接下来这十分钟你也被好运包围啦～✨',
+  '嘘——刚才巡游时我偷偷许了个愿：愿你每次连线都一次过！🤞',
+  '杉杉巡游归来，累得直喘气，快给我点个小星星充充电吧！⚡',
+  '全场巡逻结束，没发现小偷，只发现一个正在偷偷变强的你！💪'
+];
+var LAUGH=['哈哈哈哈～','嘿嘿嘿！','呵呵呵～','噗哈哈！'];
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function speakFunny(text){
+  try{
+    if(window.MX_VOICE&&window.MX_VOICE.say) window.MX_VOICE.say(text);
+    else if(window.speakTTS) window.speakTTS(text,'female');
+  }catch(e){}
+}
+function spark(x,y){
+  var s=document.createElement('div'); s.className='mx192-spark';
+  s.style.left=x+'px'; s.style.top=y+'px'; document.body.appendChild(s);
+  setTimeout(function(){ s.remove(); },720);
+}
+var paradeRunning=false, paradeRaf=0, sparkT=0, reportTimer=null, closedFlag=false;
+
+function stopParade(quiet){
+  paradeRunning=false; closedFlag=true;
+  try{ cancelAnimationFrame(paradeRaf); }catch(e){}
+  try{ clearInterval(sparkT); clearTimeout(reportTimer); }catch(e){}
+  var el=byId('mxRoam');
+  if(el){
+    el.classList.remove('mx192-parade');
+    try{ if(window.MX_ROAM&&window.MX_ROAM.toCorner) window.MX_ROAM.toCorner(); }catch(e){}
+    var b=byId('rmBubble'); if(b){ b.classList.remove('mx192-laugh','show'); }
+    el.classList.remove('mx192-edge');
+  }
+  try{ if(window.MX_VOICE&&window.MX_VOICE.stop) window.MX_VOICE.stop(); }catch(e){}
+  if(!quiet) showToast('杉杉回到岗位啦～');
+}
+function runParade(){
+  var el=byId('mxRoam'); if(!el){ scheduleParade(); return; }
+  ensureHandle(); bindZoom();
+  if(paradeRunning) return;
+  paradeRunning=true; closedFlag=false;
+  el.classList.add('mx192-parade');
+  /* 开场一句爆笑播报 */
+  speakFunny('注意啦注意啦！杉杉开始巡游全场咯，'+pick(LAUGH));
+  var W=window.innerWidth, H=window.innerHeight;
+  var size=88*(window.MX_ROAM&&window.MX_ROAM.state?window.MX_ROAM.state().scale:0.75);
+  var padX=Math.max(6,size/2+6), padY=Math.max(60,size/2+8);
+  var t0=performance.now();
+  function frame(now){
+    if(!paradeRunning) return;
+    var p=(now-t0)/PARADE_MS; if(p>1) p=1;
+    /* 李萨如曲线绕行全场：横竖两个不同频率正弦叠加 */
+    var x=padX+(W-padX*2)*(0.5+0.5*Math.sin(2*Math.PI*p));
+    var y=padY+(H-padY*2-90)*(0.5+0.5*Math.sin(4*Math.PI*p-1.1));
+    try{ if(window.MX_ROAM&&window.MX_ROAM.place) window.MX_ROAM.place(Math.round(x),Math.round(y)); }catch(e){}
+    paradeRaf=requestAnimationFrame(frame);
+  }
+  paradeRaf=requestAnimationFrame(frame);
+  sparkT=setInterval(function(){
+    var r=el.getBoundingClientRect(); spark(r.left+r.width/2,r.top+r.height/2);
+  },140);
+  /* 10秒后：收尾 + 诙谐播报10秒 */
+  reportTimer=setTimeout(function(){
+    try{ cancelAnimationFrame(paradeRaf); clearInterval(sparkT); }catch(e){}
+    el.classList.remove('mx192-parade');
+    try{ if(window.MX_ROAM&&window.MX_ROAM.toCorner) window.MX_ROAM.toCorner(); }catch(e){}
+    var joke=pick(JOKES)+' '+pick(LAUGH);
+    var b=byId('rmBubble');
+    /* 靠右(或靠边)时气泡改为向左展开，避免溢出屏幕右侧 */
+    try{ var er=el.getBoundingClientRect(); if(er.left>window.innerWidth*0.55) el.classList.add('mx192-edge');
+         else el.classList.remove('mx192-edge'); }catch(e){}
+    if(b){ var line=byId('rmLine'); if(line) line.textContent=joke; b.classList.add('show','mx192-laugh'); }
+    speakFunny(joke);
+    /* 播报10秒后自动收起；期间点击杉杉可提前关闭 */
+    reportTimer=setTimeout(function(){
+      var bb=byId('rmBubble'); if(bb) bb.classList.remove('show','mx192-laugh');
+      el.classList.remove('mx192-edge');
+      try{ if(window.MX_VOICE&&window.MX_VOICE.stop) window.MX_VOICE.stop(); }catch(e){}
+      paradeRunning=false;
+    }, REPORT_MS);
+  }, PARADE_MS);
+  /* 巡游/播报期间点击杉杉可关闭 */
+  if(!el.dataset.v192close){
+    el.dataset.v192close='1';
+    el.addEventListener('pointerdown',function(e){
+      if(!paradeRunning) return;
+      if(e.target.closest('.rm-zoomhint')||e.target.closest('.rm-voice')) return;
+      stopParade(); e.stopPropagation();
+    },true);
+  }
+}
+/* 计算距离下一个整点15分钟刻度的毫秒 */
+function msToNextQuarter(){
+  var d=new Date(), m=d.getMinutes(), s=d.getSeconds(), ms=d.getMilliseconds();
+  var toMin=(15-(m%15))*60 - s;
+  if(toMin<=0) toMin=15*60;
+  return toMin*1000 - ms;
+}
+function scheduleParade(){
+  clearTimeout(window.__mx192PT);
+  window.__mx192PT=setTimeout(function(){
+    if(!document.hidden) runParade();
+    scheduleParade();
+  }, msToNextQuarter()+1500);
+}
+
+/* ============ 三、启动 ============ */
+var bootN=0, bootT=setInterval(function(){
+  bootN++;
+  var el=byId('mxRoam');
+  if(el){ ensureHandle(); bindZoom(); }
+  if(bootN>20) clearInterval(bootT);
+},400);
+scheduleParade();
+/* 对外接口：便于测试与手动触发 */
+window.MX_192={ parade:runParade, stop:stopParade, zoom:stepZoom, jokes:JOKES };
+})();
+</script>
+<!-- ============ v192 END ============ -->
+
 
 </body>
 </html>
