@@ -15911,7 +15911,8 @@ function renderWorld(){
   var keys=Object.keys(L); var total=0; for(var k in L) total+=(L[k].count||0);
   var cc=document.getElementById('wmCityCnt'); if(cc) cc.textContent=keys.length;
   var pc=document.getElementById('wmPlayCnt'); if(pc) pc.textContent=total;
-  var mc=document.getElementById('wmMyCity'); if(mc) mc.textContent=sel||'—';
+  var mc=document.getElementById('wmMyCity');
+  if(mc){ var _d='—'; try{ if(typeof WX!=='undefined'&&WX&&WX.city) _d=String(WX.city).split('·')[0]; }catch(e){} mc.textContent=sel||_d; }
 }
 function openWorldMap(){ renderWorld(); document.getElementById('ovWorldMap').classList.add('show'); }
 
@@ -17198,11 +17199,11 @@ header .h-row #seal.seal-gold::after{content:"";position:absolute;top:0;left:-60
 #mxRoam .rm-voice{top:auto!important;bottom:-6px!important;left:auto!important;right:-6px!important;
   width:20px!important;height:20px!important;line-height:18px!important;font-size:10px!important;opacity:.9;}
 /* ---------- ① 地图缩放控件 ---------- */
-.wm-zoombar{display:flex;align-items:center;gap:5px;justify-content:center;flex-wrap:wrap;margin:2px 0 7px;}
+.wm-zoombar{display:flex;align-items:center;gap:4px;justify-content:center;flex-wrap:nowrap;margin:2px 0 7px;}
 .wm-zoombar button{border:1.5px solid var(--line,#d9c390);background:linear-gradient(135deg,#fbf3e2,#f3e4c4);
-  color:#6b4a1a;font-weight:800;font-size:13px;border-radius:9px;padding:4px 10px;cursor:pointer;box-shadow:0 1px 3px rgba(120,90,40,.15);}
+  color:#6b4a1a;font-weight:800;font-size:12px;border-radius:9px;padding:4px 7px;cursor:pointer;box-shadow:0 1px 3px rgba(120,90,40,.15);white-space:nowrap;}
 .wm-zoombar button:active{transform:scale(.94);}
-.wm-zoombar .z-level{font-size:11px;color:#8a6a30;min-width:96px;text-align:center;font-weight:700;}
+.wm-zoombar .z-level{font-size:10.5px;color:#8a6a30;min-width:78px;text-align:center;font-weight:700;white-space:nowrap;}
 .wm-zoombar .z-home{background:linear-gradient(135deg,#e8b84b,#c99528);color:#fff;border-color:#a97c1e;}
 #mxWorldSvg{touch-action:none;cursor:grab;}
 #mxWorldSvg.panning{cursor:grabbing;}
@@ -17262,12 +17263,14 @@ function getView(){
 }
 function setView(v){localStorage.setItem(MAPKEY,JSON.stringify(v));}
 function defaultCenter(){
-  var city=(window.WX&&window.WX.city)||'三明·中国';
-  var base=city.split('·')[0].replace(/市$/,'');
-  if(window.MX_CITY){var s=window.MX_CITY.getSelected();if(s)base=s;}
-  if(window.CITY_LIST)for(var i=0;i<CITY_LIST.length;i++)if(CITY_LIST[i].n===base)return {cx:CITY_LIST[i].lon,cy:CITY_LIST[i].lat};
-  if(window.WX&&window.WX.lon!=null)return {cx:window.WX.lon,cy:window.WX.lat};
-  return {cx:117.16,cy:26.36};
+  /* v194：与顶栏天气按键对应城市同步。WX 是 const 词法变量（非 window 属性），直接读 */
+  var city='三明·中国',lat=26.0745,lon=119.2965;
+  try{ if(typeof WX!=='undefined'&&WX){ if(WX.city)city=WX.city; if(WX.lat!=null)lat=WX.lat; if(WX.lon!=null)lon=WX.lon; } }catch(e){}
+  var base=String(city).split('·')[0].replace(/市$/,'');
+  if(window.MX_CITY){try{var s=window.MX_CITY.getSelected();if(s)base=s;}catch(e){}}
+  var LIST=(typeof CITY_DATA!=='undefined'&&CITY_DATA)?CITY_DATA:(typeof CITY_LIST!=='undefined'?CITY_LIST:null);
+  if(LIST)for(var i=0;i<LIST.length;i++)if(LIST[i].n===base)return {cx:LIST[i].lon,cy:LIST[i].lat};
+  return {cx:lon,cy:lat};
 }
 function calcVB(v){
   var w=1000/v.z,h=520/v.z,c=projXY(v.cx,v.cy);
@@ -17422,6 +17425,22 @@ var t=0,wait=setInterval(function(){
     clearInterval(wait);
   }
   if(t>40)clearInterval(wait);
+},200);
+/* v194 关键修复：足迹按钮 onclick 绑定的是闭包里的 openWorldMap()，
+   不经过 window.MX_LITE.openMap，导致上面劫持失效、缩放地图从未渲染。
+   这里直接重绑按钮 onclick，强制走 install()+renderMap()。 */
+var t2=0,wait2=setInterval(function(){
+  t2++;
+  var wb=byId('btnWorldMap');
+  if(wb&&!wb.dataset.v194){
+    wb.dataset.v194='1';
+    wb.onclick=function(){
+      try{ if(window.MX_LITE&&typeof window.MX_LITE.openMap==='function') window.MX_LITE.openMap();
+           else { install(); renderMap(); var ov=byId('ovWorldMap'); if(ov)ov.classList.add('show'); } }catch(e){}
+    };
+    clearInterval(wait2);
+  }
+  if(t2>40)clearInterval(wait2);
 },200);
 })();
 </script>
