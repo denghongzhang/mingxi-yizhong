@@ -17491,5 +17491,62 @@ window.MX_V190={seal10:setSeal10,seal50:setSeal50,moveFootprint:moveFootprint};
 
 
 
+<!-- ============ v191 BEGIN: 修复多语言下顶部关卡徽章显示 99/47 旧值 ============ -->
+<script>
+/* v191 · 顶部 seal 徽章："99/47关" 是历史写死的旧文案（游戏现为 10关速通/50关完整）。
+   根因：applyLang() 用 I18N_SUPP5 里 seal:'99 Levels' 覆盖 v190 的 setSeal10/setSeal50。
+   修复策略：
+     (1) 就地修正所有语言 I18N 的 seal/winText 值 47/99 → 10；
+     (2) 用 MutationObserver 记录真实档位(10/50)到 dataset.sealMode；
+     (3) 语言切换后按记录档位重绘，全程保留金光 class；
+     (4) 仅当棋盘已渲染时才纠正，避免破坏启动看门狗对初始"99关"的依赖。 */
+(function(){
+  /* (1) 就地修正译文 */
+  try{
+    if(typeof I18N!=='undefined'){
+      Object.keys(I18N).forEach(function(k){
+        var d=I18N[k]; if(!d) return;
+        if(typeof d.seal==='string' && /(47|99)/.test(d.seal)) d.seal=d.seal.replace(/47/g,'10').replace(/99/g,'10');
+        if(typeof d.winText==='string' && /(47|99)/.test(d.winText)) d.winText=d.winText.replace(/47/g,'10').replace(/99/g,'10');
+      });
+    }
+  }catch(e){}
+
+  var s=document.getElementById('seal');
+  if(!s) return;
+  function rendered(){ try{ return document.querySelectorAll('#board .cell').length>0; }catch(e){ return false; } }
+  function en(){ try{ return (typeof isEN==='function')?isEN():(typeof curLang!=='undefined'&&curLang!=='zh'); }catch(e){ return false; } }
+  function setTxt(mode){
+    s.textContent = en() ? (mode==='50'?'50 Levels':'10 Levels') : (mode==='50'?'50关':'10关');
+    s.classList.add('seal-gold');
+  }
+  /* (2) 监听徽章文本变化：识别真实档位并记录；发现 99/47 污染立即按记录档位纠正 */
+  if(window.MutationObserver && !s.dataset.v191){
+    s.dataset.v191='1'; s.dataset.sealMode='10';
+    var busy=false;
+    new MutationObserver(function(){
+      if(busy) return;
+      var t=s.textContent||'';
+      if(/50/.test(t)){ s.dataset.sealMode='50'; return; }         /* 连击/完整档 */
+      if(/10/.test(t)){ s.dataset.sealMode='10'; return; }         /* 速通档 */
+      if(/99|47/.test(t) && rendered()){                            /* 被旧译文污染 */
+        busy=true; setTxt(s.dataset.sealMode||'10');
+        setTimeout(function(){ busy=false; },0);
+      }
+    }).observe(s,{childList:true,characterData:true,subtree:true});
+  }
+
+  /* (3) 语言切换后重绘（addEventListener 在 onchange 属性处理器之后执行） */
+  var l=document.getElementById('langSel');
+  if(l && !l.dataset.v191lang){
+    l.dataset.v191lang='1';
+    l.addEventListener('change', function(){ setTimeout(function(){ if(rendered()) setTxt(s.dataset.sealMode||'10'); },0); });
+  }
+  /* (4) 首屏兜底：仅游戏已渲染时纠正（否则保留"99关"给看门狗） */
+  setTimeout(function(){ if(rendered() && /(99|47)/.test(s.textContent||'')) setTxt(s.dataset.sealMode||'10'); }, 1300);
+})();
+</script>
+<!-- ============ v191 END ============ -->
+
 </body>
 </html>
