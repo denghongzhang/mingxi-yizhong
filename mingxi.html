@@ -17139,5 +17139,357 @@ window.MX_INTRO={ say:say, stop:stop, text:TEXT };
 
 <!-- ============ v189 END ============ -->
 
+<!-- ============ v190 BEGIN: 地图缩放分级 + 顶栏重排 + 杉杉紧凑 + 关卡徽章 ============ -->
+<style>
+/* ---------- ② 足迹按钮移到天气与中文之间，与天气同高，中文收窄 ---------- */
+.h-row.info-row{display:flex;align-items:center;gap:5px;}
+.h-row.info-row #btnWx{flex:0 0 auto;}
+.h-row.info-row #btnWorldMap{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  height:auto;padding:3px 9px;font-size:calc(12px * var(--font-scale));font-weight:700;border-radius:999px;
+  border:1px solid #1d5670;background:linear-gradient(135deg,#2b6e8e,#4fa3c7);color:#fff;white-space:nowrap;
+  box-shadow:0 1px 0 rgba(0,0,0,.12);cursor:pointer;}
+.h-row.info-row .tb-sel{flex:0 0 auto;min-width:0;width:auto;max-width:76px;padding:3px 2px;font-size:calc(11.5px * var(--font-scale));}
+/* 从工具行移除足迹按钮（若仍在） */
+.tb-row #btnWorldMap{display:none;}
+/* ---------- ④ 关卡徽章默认10关 + 金光闪闪（仿福按钮） ---------- */
+header .h-row #seal.seal-gold{
+  background:radial-gradient(120% 120% at 30% 25%,#ffe9a8,#e8b24b 62%,#b8861f);color:#5a3d08;
+  border:1px solid #f6d98a;box-shadow:0 1px 0 #8a6518,0 0 10px rgba(232,184,75,.75),inset 0 1px 0 rgba(255,248,210,.9);
+  animation:mx190SealShine 2.2s ease-in-out infinite;position:relative;overflow:hidden;}
+header .h-row #seal.seal-gold::after{content:"";position:absolute;top:0;left:-60%;width:45%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.85),transparent);transform:skewX(-18deg);
+  animation:mx190SealSweep 2.6s linear infinite;}
+@keyframes mx190SealShine{0%,100%{box-shadow:0 1px 0 #8a6518,0 0 8px rgba(232,184,75,.6),inset 0 1px 0 rgba(255,248,210,.9);}50%{box-shadow:0 1px 0 #8a6518,0 0 16px rgba(255,212,90,.95),inset 0 1px 0 rgba(255,255,230,1);}}
+@keyframes mx190SealSweep{0%{left:-60%;}55%{left:130%;}100%{left:130%;}}
+/* ---------- ⑤ 棋盘右上角 0/10 底色透明融入棋盘 ---------- */
+.lvl-ring{background:conic-gradient(rgba(232,184,75,.85) calc(var(--p)*1%),rgba(120,100,70,.12) 0)!important;}
+.lvl-ring::before{background:rgba(245,232,200,.32)!important;backdrop-filter:blur(1px);}
+.lvl-ring span{color:#7a3b1e!important;text-shadow:0 1px 2px rgba(255,245,220,.95);}
+/* ---------- ③ 巡游杉杉控制紧凑：去+-符号，改手势/双击缩放 ---------- */
+#mxRoam .rm-ctrl{display:none!important;}
+#mxRoam .rm-voice{top:auto!important;bottom:-6px!important;left:auto!important;right:-6px!important;
+  width:20px!important;height:20px!important;line-height:18px!important;font-size:10px!important;opacity:.9;}
+/* ---------- ① 地图缩放控件 ---------- */
+.wm-zoombar{display:flex;align-items:center;gap:5px;justify-content:center;flex-wrap:wrap;margin:2px 0 7px;}
+.wm-zoombar button{border:1.5px solid var(--line,#d9c390);background:linear-gradient(135deg,#fbf3e2,#f3e4c4);
+  color:#6b4a1a;font-weight:800;font-size:13px;border-radius:9px;padding:4px 10px;cursor:pointer;box-shadow:0 1px 3px rgba(120,90,40,.15);}
+.wm-zoombar button:active{transform:scale(.94);}
+.wm-zoombar .z-level{font-size:11px;color:#8a6a30;min-width:96px;text-align:center;font-weight:700;}
+.wm-zoombar .z-home{background:linear-gradient(135deg,#e8b84b,#c99528);color:#fff;border-color:#a97c1e;}
+#mxWorldSvg{touch-action:none;cursor:grab;}
+#mxWorldSvg.panning{cursor:grabbing;}
+.wm-place{cursor:pointer;}
+.wm-place text{font-weight:800;fill:#5a3d18;paint-order:stroke;stroke:#fff;pointer-events:none;}
+.wm-place.village text{fill:#7a4a12;}
+.wm-place.town circle{fill:#e8b84b;stroke:#fff;stroke-width:1.4;}
+.wm-place.village circle{fill:#d98b3a;stroke:#fff;stroke-width:1.1;}
+.wm-place.county circle{fill:#4a9a5c;stroke:#fff;stroke-width:1.3;}
+.wm-hintline{font-size:10.5px;color:#8a7a5c;text-align:center;margin:2px 0 0;}
+</style>
+
+<script>
+(function(){
+/* ============ v190 地图缩放分级（全局状态版） ============ */
+function byId(id){return document.getElementById(id);}
+var MAPKEY='mx190_map_view';
+var zoomLabels=['全球 · 城市','全国 · 省份','省域 · 地市县','县域 · 乡镇','乡镇 · 行政村'];
+var levels=[1,3,9,400,1000];
+function levelOf(z){var lv=0;for(var i=0;i<levels.length;i++)if(z>=levels[i])lv=i;return lv;}
+
+var MINGXI_TOWNS=[
+  {n:'雪峰镇',lat:26.36,lon:117.16},{n:'城关乡',lat:26.40,lon:117.15},
+  {n:'瀚仙镇',lat:26.48,lon:117.25},{n:'胡坊镇',lat:26.18,lon:117.10},
+  {n:'盖洋镇',lat:26.52,lon:117.02},{n:'沙溪乡',lat:26.30,lon:117.30},
+  {n:'夏阳乡',lat:26.50,lon:117.42},{n:'枫溪乡',lat:26.28,lon:116.93},
+  {n:'夏坊乡',lat:26.20,lon:116.98}
+];
+var MINGXI_VILLAGES={
+  '雪峰镇':['城东村','城西村','城南社区','紫岭社区','中山社区','城北社区'],
+  '城关乡':['上坊村','坪埠村','王桥村','狮窠村','罗翠村','余坊村','下汴村','大坪村','大富村'],
+  '瀚仙镇':['瀚仙村','王陂村','大焦村','石珩村','龙湖村','连厝村','岩里村','坪地村','洋龙村','花园村','小眉溪村'],
+  '胡坊镇':['胡坊村','瓦口村','柏亨村','朱南村','眉溪村','奋发村','福西村','洋地村','冯厝村','肖家山村'],
+  '盖洋镇':['盖洋村','湖上村','村头村','雷西村','葫芦形村','温庄村','湾内村','衢地村','白叶村','白岚村','桂林村','画桥村','大坑村','常坪村','姜坊村','大洋村','杨地村','林地村'],
+  '沙溪乡':['沙溪村','永溪村','六合村','梓口坊村','瑶奢村','碧州村'],
+  '夏阳乡':['夏阳村','杏村村','御帘村','长兴村','地美村','岭头村','下坂村','瓦溪村','溪边村','俞云坂村','陈坊村','旦上村','紫云村','后洋村','良村村','新坊村'],
+  '枫溪乡':['枫溪村','小珩村','官坊回族村','大雅村','华山村','邓家村','熊地村'],
+  '夏坊乡':['夏坊村','高洋村','鳌坑村','龙坑村','新建村','中溪村','李沂村','苎畲村','黄地村']
+};
+var CN_PROV=[
+  {n:'北京',lat:39.9,lon:116.4},{n:'上海',lat:31.2,lon:121.5},{n:'广东',lat:23.3,lon:113.3},
+  {n:'福建',lat:26.0,lon:118.3},{n:'浙江',lat:29.2,lon:120.2},{n:'江苏',lat:33.0,lon:118.8},
+  {n:'四川',lat:30.6,lon:104.1},{n:'湖北',lat:30.9,lon:112.3},{n:'陕西',lat:35.2,lon:108.9},
+  {n:'山东',lat:36.4,lon:118.0},{n:'河南',lat:34.0,lon:113.5},{n:'辽宁',lat:41.8,lon:123.4},
+  {n:'云南',lat:25.0,lon:102.7},{n:'新疆',lat:43.8,lon:87.6},{n:'西藏',lat:29.7,lon:91.1},
+  {n:'明溪',lat:26.36,lon:117.16}
+];
+var MINGXI_BOX={latMin:26.10,latMax:26.62,lonMin:116.88,lonMax:117.50};
+function projXY(lon,lat){return [(lon+180)/360*1000,(90-lat)/180*520];}
+
+/* 全局状态：每次从 storage 读取最新值 */
+function getView(){
+  var v=null;
+  try{var raw=localStorage.getItem(MAPKEY);if(raw)v=JSON.parse(raw);}catch(e){v=null;}
+  if(!v||typeof v!=='object'||typeof v.z!=='number'){v={cx:117.16,cy:26.36,z:1};localStorage.setItem(MAPKEY,JSON.stringify(v));}
+  return v;
+}
+function setView(v){localStorage.setItem(MAPKEY,JSON.stringify(v));}
+function defaultCenter(){
+  var city=(window.WX&&window.WX.city)||'三明·中国';
+  var base=city.split('·')[0].replace(/市$/,'');
+  if(window.MX_CITY){var s=window.MX_CITY.getSelected();if(s)base=s;}
+  if(window.CITY_LIST)for(var i=0;i<CITY_LIST.length;i++)if(CITY_LIST[i].n===base)return {cx:CITY_LIST[i].lon,cy:CITY_LIST[i].lat};
+  if(window.WX&&window.WX.lon!=null)return {cx:window.WX.lon,cy:window.WX.lat};
+  return {cx:117.16,cy:26.36};
+}
+function calcVB(v){
+  var w=1000/v.z,h=520/v.z,c=projXY(v.cx,v.cy);
+  var x=c[0]-w/2,y=c[1]-h/2;
+  x=Math.max(0,Math.min(1000-w,x));y=Math.max(0,Math.min(520-h,y));
+  return [x,y,w,h];
+}
+function inBox(v,box,m){m=m||0;return v.cx>box.lonMin-m&&v.cx<box.lonMax+m&&v.cy>box.latMin-m&&v.cy<box.latMax+m;}
+
+var CITY_DATA=[
+  {n:'北京',lat:39.9,lon:116.4},{n:'上海',lat:31.2,lon:121.5},{n:'广州',lat:23.1,lon:113.3},
+  {n:'深圳',lat:22.5,lon:114.1},{n:'成都',lat:30.6,lon:104.1},{n:'杭州',lat:30.3,lon:120.2},
+  {n:'南京',lat:32.1,lon:118.8},{n:'武汉',lat:30.6,lon:114.3},{n:'西安',lat:34.3,lon:108.9},
+  {n:'重庆',lat:29.6,lon:106.5},{n:'天津',lat:39.1,lon:117.2},{n:'苏州',lat:31.3,lon:120.6},
+  {n:'福州',lat:26.1,lon:119.3},{n:'厦门',lat:24.5,lon:118.1},{n:'三明',lat:26.3,lon:117.6},
+  {n:'明溪',lat:26.3,lon:117.2},{n:'泉州',lat:24.9,lon:118.6},{n:'长沙',lat:28.2,lon:112.9},
+  {n:'郑州',lat:34.7,lon:113.6},{n:'济南',lat:36.7,lon:117.0},{n:'青岛',lat:36.1,lon:120.4},
+  {n:'大连',lat:38.9,lon:121.6},{n:'沈阳',lat:41.8,lon:123.4},{n:'哈尔滨',lat:45.8,lon:126.5},
+  {n:'昆明',lat:25.0,lon:102.7},{n:'贵阳',lat:26.6,lon:106.6},{n:'南宁',lat:22.8,lon:108.3},
+  {n:'海口',lat:20.0,lon:110.3},{n:'兰州',lat:36.1,lon:103.8},{n:'银川',lat:38.5,lon:106.3},
+  {n:'西宁',lat:36.6,lon:101.8},{n:'乌鲁木齐',lat:43.8,lon:87.6},{n:'拉萨',lat:29.7,lon:91.1},
+  {n:'呼和浩特',lat:40.8,lon:111.7},{n:'太原',lat:37.9,lon:112.6},{n:'石家庄',lat:38.0,lon:114.5},
+  {n:'合肥',lat:31.8,lon:117.2},{n:'南昌',lat:28.7,lon:115.9},{n:'宁波',lat:29.9,lon:121.6},
+  {n:'无锡',lat:31.5,lon:120.3},{n:'温州',lat:28.0,lon:120.7},{n:'珠海',lat:22.3,lon:113.6},
+  {n:'东莞',lat:23.0,lon:113.7},{n:'佛山',lat:23.0,lon:113.1},{n:'中国香港',lat:22.3,lon:114.2},
+  {n:'中国澳门',lat:22.2,lon:113.5},{n:'中国台北',lat:25.0,lon:121.6},{n:'高雄',lat:22.6,lon:120.3},
+  {n:'东京',lat:35.7,lon:139.7},{n:'大阪',lat:34.7,lon:135.5},{n:'首尔',lat:37.6,lon:127.0},
+  {n:'新加坡',lat:1.35,lon:103.8},{n:'曼谷',lat:13.8,lon:100.5},{n:'吉隆坡',lat:3.1,lon:101.7},
+  {n:'雅加达',lat:-6.2,lon:106.8},{n:'马尼拉',lat:14.6,lon:121.0},{n:'河内',lat:21.0,lon:105.8},
+  {n:'新德里',lat:28.6,lon:77.2},{n:'孟买',lat:19.1,lon:72.9},{n:'迪拜',lat:25.2,lon:55.3},
+  {n:'伦敦',lat:51.5,lon:-0.1},{n:'巴黎',lat:48.9,lon:2.4},{n:'柏林',lat:52.5,lon:13.4},
+  {n:'罗马',lat:41.9,lon:12.5},{n:'马德里',lat:40.4,lon:-3.7},{n:'莫斯科',lat:55.8,lon:37.6},
+  {n:'纽约',lat:40.7,lon:-74.0},{n:'洛杉矶',lat:34.1,lon:-118.2},{n:'旧金山',lat:37.8,lon:-122.4},
+  {n:'芝加哥',lat:41.9,lon:-87.6},{n:'多伦多',lat:43.7,lon:-79.4},{n:'温哥华',lat:49.3,lon:-123.1},
+  {n:'墨西哥城',lat:19.4,lon:-99.1},{n:'圣保罗',lat:-23.6,lon:-46.6},{n:'里约热内卢',lat:-22.9,lon:-43.2},
+  {n:'布宜诺斯艾利斯',lat:-34.6,lon:-58.4},{n:'悉尼',lat:-33.9,lon:151.2},{n:'墨尔本',lat:-37.8,lon:145.0},
+  {n:'奥克兰',lat:-36.8,lon:174.8},{n:'开普敦',lat:-33.9,lon:18.4},{n:'开罗',lat:30.0,lon:31.2},
+  {n:'内罗毕',lat:-1.3,lon:36.8},{n:'伊斯坦布尔',lat:41.0,lon:28.9}
+];
+var LAND_POLYS=[
+  [[-168,66],[-160,71],[-140,70],[-125,70],[-110,69],[-95,69],[-80,63],[-62,60],[-55,52],[-60,47],[-66,45],[-70,42],[-74,37],[-80,26],[-81,25],[-84,30],[-90,29],[-97,26],[-97,18],[-92,15],[-88,16],[-85,11],[-79,9],[-83,15],[-90,19],[-96,19],[-105,21],[-110,24],[-114,28],[-117,32],[-122,37],[-124,42],[-125,48],[-130,54],[-140,59],[-150,61],[-160,59]],
+  [[-80,10],[-72,11],[-62,10],[-52,5],[-45,0],[-35,-6],[-35,-9],[-38,-14],[-41,-21],[-48,-26],[-53,-33],[-58,-38],[-62,-40],[-66,-46],[-68,-52],[-72,-54],[-73,-44],[-72,-34],[-70,-20],[-75,-14],[-78,-4],[-80,2],[-79,7]],
+  [[-10,36],[-9,43],[-2,43],[0,39],[3,42],[10,44],[15,45],[20,40],[24,40],[28,41],[24,45],[28,48],[30,52],[28,56],[30,60],[28,65],[22,66],[20,70],[15,68],[10,64],[5,62],[0,58],[-5,58],[-8,54],[-10,50],[-9,44]],
+  [[-17,35],[-10,37],[0,37],[10,37],[20,32],[30,31],[33,28],[35,22],[38,18],[43,12],[51,12],[48,5],[42,-2],[40,-10],[35,-18],[32,-25],[27,-33],[20,-35],[18,-30],[15,-25],[12,-18],[9,-5],[8,4],[3,6],[-5,5],[-10,15],[-17,21],[-17,30]],
+  [[26,41],[35,42],[40,40],[45,40],[50,30],[55,26],[60,25],[65,25],[70,22],[75,20],[80,10],[80,18],[85,21],[90,22],[95,18],[100,10],[105,10],[108,18],[110,20],[120,22],[122,30],[122,38],[126,40],[130,42],[135,48],[140,52],[145,55],[150,60],[160,60],[170,65],[180,68],[180,72],[160,70],[140,72],[120,75],[100,76],[80,74],[60,72],[40,70],[30,70],[28,66],[24,60],[24,50]],
+  [[113,-11],[130,-11],[137,-12],[142,-11],[146,-19],[153,-25],[153,-31],[150,-37],[143,-39],[135,-35],[129,-32],[115,-34],[113,-22]],
+  [[-52,60],[-45,60],[-20,70],[-20,80],[-35,83],[-50,80],[-58,72]],
+  [[130,32],[135,34],[138,37],[141,41],[142,44],[140,42],[137,37],[133,34]]
+];
+function renderMap(){
+  var svg=byId('mxWorldSvg');if(!svg)return;
+  var v=getView(),vb=calcVB(v),s='';
+  svg.setAttribute('viewBox',vb.map(function(x){return x.toFixed(2);}).join(' '));
+  /* 县域及以下级别隐藏大陆多边形，避免高倍放大下的碎片干扰 */
+  if(v.z<levels[3]){
+    LAND_POLYS.forEach(function(poly){
+      var pts=poly.map(function(p){var q=projXY(p[0],p[1]);return q[0].toFixed(1)+','+q[1].toFixed(1);}).join(' ');
+      s+='<polygon class="wm-land" points="'+pts+'"/>';
+    });
+  }
+  var lv=levelOf(v.z);
+  if(v.z>=levels[2]){
+    var a=projXY(MINGXI_BOX.lonMin,MINGXI_BOX.latMax),b=projXY(MINGXI_BOX.lonMax,MINGXI_BOX.latMin);
+    s+='<rect x="'+a[0].toFixed(1)+'" y="'+a[1].toFixed(1)+'" width="'+(b[0]-a[0]).toFixed(1)+'" height="'+(b[1]-a[1]).toFixed(1)+'" fill="rgba(120,180,120,.14)" stroke="#5a9a5c" stroke-width="'+px(v.z,1.5).toFixed(2)+'" stroke-dasharray="'+px(v.z,5).toFixed(2)+' '+px(v.z,4).toFixed(2)+'"/>';
+  }
+  /* 半径/文字偏移按缩放自适应，保持屏幕像素大小恒定 */
+  function px(z,pixel){ return pixel*1000/(320*z); }
+  function place(name,lat,lon,cls,rpx){
+    var p=projXY(lon,lat);
+    var rr=px(v.z,rpx||4), ox=px(v.z,rpx||4)+px(v.z,2), oy=px(v.z,rpx||4);
+    var fs=cls==='village'?px(v.z,9.5):px(v.z,11), sw=px(v.z,1.2);
+    s+='<g class="wm-place '+cls+'" data-n="'+name+'"><circle cx="'+p[0].toFixed(3)+'" cy="'+p[1].toFixed(3)+'" r="'+rr.toFixed(3)+'" style="stroke-width:'+sw.toFixed(3)+'px"/><text x="'+(p[0]+ox).toFixed(3)+'" y="'+(p[1]+oy).toFixed(3)+'" style="font-size:'+fs.toFixed(3)+'px;stroke-width:'+sw.toFixed(3)+'px">'+name+'</text></g>';
+  }
+  if(v.z>=levels[3]&&inBox(v,MINGXI_BOX,0.6)){
+    MINGXI_TOWNS.forEach(function(t){place(t.n,t.lat,t.lon,'town',5);});
+    if(v.z>=levels[4]){
+      MINGXI_TOWNS.forEach(function(t,ti){
+        var vs=MINGXI_VILLAGES[t.n]||[];
+        vs.forEach(function(village,vi){var ang=(vi/vs.length)*Math.PI*2+ti,rad=0.06+0.02*(vi%4);
+          place(village,t.lat+Math.sin(ang)*rad,t.lon+Math.cos(ang)*rad*1.15,'village',2.6);});
+      });
+    }
+  }else if(v.z>=levels[1]&&v.cx>100&&v.cx<125&&v.cy>18&&v.cy<54){
+    CN_PROV.forEach(function(p){place(p.n,p.lat,p.lon,'county',4);});
+  }else if(CITY_DATA){
+    var L=window.MX_CITY?window.MX_CITY.getLight():{};
+    CITY_DATA.forEach(function(c){
+      var p=projXY(c.lon,c.lat),lit=!!L[c.n],cnt=lit?L[c.n].count:0,r=lit?(cnt>=10?9:(cnt>=5?7:(cnt>=2?6:5))):3;
+      s+='<g class="wm-city'+(lit?' lit':'')+'" data-city="'+c.n+'" data-count="'+cnt+'">';
+      if(lit)s+='<circle class="halo" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="5"/>';
+      s+='<circle class="core" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+r+'"/>';
+      if(lit)s+='<text class="wm-city-label" x="'+(p[0]+6).toFixed(1)+'" y="'+(p[1]+4).toFixed(1)+'">'+c.n+'</text>';
+      s+='</g>';
+    });
+  }
+  svg.innerHTML=s;
+  var lab=byId('wmLevel');if(lab)lab.textContent=zoomLabels[lv]+' · '+v.z.toFixed(1)+'×';
+  Array.prototype.forEach.call(svg.querySelectorAll('.wm-place,.wm-city'),function(g){
+    g.style.cursor='pointer';g.onclick=function(){
+      var n=g.getAttribute('data-n')||g.getAttribute('data-city'),info=byId('wmInfo');
+      if(info)info.innerHTML='📍 <b>'+n+'</b> · '+(levelOf(getView().z)>=3?'明溪县域（乡镇/行政村已显示）':'点「＋放大」下钻：省份→县→乡镇→行政村');
+    };
+  });
+}
+function zoom(factor){
+  var v=getView();v.z=Math.max(1,Math.min(2000,v.z*factor));setView(v);renderMap();
+}
+function panBy(dx,dy){
+  var v=getView(),vb=calcVB(v);
+  v.cx+=dx/vb[2]*360;v.cy-=dy/vb[3]*180;
+  v.cx=Math.max(-180,Math.min(180,v.cx));v.cy=Math.max(-90,Math.min(90,v.cy));
+  setView(v);renderMap();
+}
+function goHome(){var d=defaultCenter(),v=getView();v.cx=d.cx;v.cy=d.cy;v.z=1;setView(v);renderMap();}
+function centerTo(lat,lon,z){var v=getView();v.cx=lon;v.cy=lat;if(z)v.z=z;setView(v);renderMap();}
+window.__mx190Zoom=zoom;window.__mx190Home=goHome;window.__mx190CenterTo=centerTo;
+
+function install(){
+  var ov=byId('ovWorldMap');if(!ov)return;
+  if(!byId('wmZoomBar')){
+    var bar=document.createElement('div');bar.className='wm-zoombar';bar.id='wmZoomBar';
+    bar.innerHTML='<button id="wmZOut" title="缩小">－</button><span class="z-level" id="wmLevel">全球 · 城市 · 1.0×</span>'
+      +'<button id="wmZIn" title="放大">＋</button><button class="z-home" id="wmHome" title="回到天气城市">⌂默认</button><button class="z-home" id="wmMingxi" title="直达明溪乡镇/行政村">🏞明溪</button>';
+    var box=ov.querySelector('.wm-svg-box');if(box)box.parentNode.insertBefore(bar,box);
+    byId('wmZIn').onclick=function(){zoom(2.4);};
+    byId('wmZOut').onclick=function(){zoom(1/2.4);};
+    byId('wmHome').onclick=function(){goHome();};
+    byId('wmMingxi').onclick=function(){centerTo(26.36,117.16,1200);};
+  }
+  if(!byId('wmHintLine')){
+    var h=document.createElement('div');h.className='wm-hintline';h.id='wmHintLine';
+    h.textContent='双指/滚轮缩放 · 拖动平移 · 双击放大 · 下钻：省份→地市县→乡镇→行政村';
+    var note=ov.querySelector('.wm-note');if(note)note.parentNode.insertBefore(h,note);
+  }
+  var svg=byId('mxWorldSvg');
+  if(window.__v190MapBound)return;
+  window.__v190MapBound=true;
+  svg.addEventListener('wheel',function(e){e.preventDefault();zoom(e.deltaY<0?1.25:1/1.25);},{passive:false});
+  var dragging=false,px=0,py=0;
+  svg.addEventListener('pointerdown',function(e){dragging=true;px=e.clientX;py=e.clientY;svg.classList.add('panning');try{svg.setPointerCapture(e.pointerId);}catch(err){}});
+  svg.addEventListener('pointermove',function(e){if(!dragging)return;panBy(e.clientX-px,e.clientY-py);px=e.clientX;py=e.clientY;});
+  svg.addEventListener('pointerup',function(){dragging=false;svg.classList.remove('panning');});
+  svg.addEventListener('pointercancel',function(){dragging=false;svg.classList.remove('panning');});
+  svg.addEventListener('dblclick',function(){zoom(2.2);});
+}
+/* 劫持 openWorldMap */
+var t=0,wait=setInterval(function(){
+  t++;
+  if(window.MX_LITE&&typeof window.MX_LITE.openMap==='function'){
+    var orig=window.MX_LITE.openMap;
+    window.MX_LITE.openMap=function(){orig();install();renderMap();};
+    clearInterval(wait);
+  }
+  if(t>40)clearInterval(wait);
+},200);
+})();
+</script>
+
+
+<script>
+(function(){
+function byId(id){return document.getElementById(id);}
+/* ---------- ② 足迹按钮移到天气与中文之间 ---------- */
+function moveFootprint(){
+  var w=byId('btnWorldMap'); if(!w)return;
+  var info=document.querySelector('.h-row.info-row'); if(!info)return;
+  var wx=byId('btnWx'), lang=byId('langSel');
+  if(wx&&lang&&w.parentNode!==info){ info.insertBefore(w,lang); }
+  /* 文案精简为图标+足迹，与天气同尺寸感 */
+  if(!w.dataset.v190){ w.dataset.v190='1'; w.textContent='🌍足迹'; w.className=''; }
+}
+/* ---------- ④ 关卡徽章：默认10关+金光，连击时切50关 ---------- */
+var sealComboTimer=null;
+function isEN(){try{return typeof curLang!=='undefined'&&curLang!=='zh';}catch(e){return false;}}
+function setSeal10(){
+  var s=byId('seal'); if(!s)return;
+  s.classList.add('seal-gold');
+  s.textContent=isEN()?'10 Levels':'10关';
+}
+function setSeal50(){
+  var s=byId('seal'); if(!s)return;
+  s.textContent=isEN()?'50 Levels':'50关'; s.classList.add('seal-gold');
+}
+function watchCombo(){
+  var area=byId('boardArea'); if(!area)return;
+  var mo=new MutationObserver(function(muts){
+    for(var i=0;i<muts.length;i++){
+      var ns=muts[i].addedNodes;
+      for(var j=0;j<ns.length;j++){
+        var n=ns[j];
+        if(n.nodeType===1&&n.classList&&n.classList.contains('combo-pop')){
+          setSeal50(); clearTimeout(sealComboTimer);
+          sealComboTimer=setTimeout(setSeal10,2600);
+          return;
+        }
+      }
+    }
+  });
+  mo.observe(area,{childList:true});
+}
+/* 点击徽章也可在10关/50关间切换（与 btnLiteMode 联动） */
+function bindSeal(){
+  var s=byId('seal'); if(!s||s.dataset.v190)return; s.dataset.v190='1';
+  s.style.cursor='pointer'; s.title='点击切换 10关速通 / 完整50关';
+  s.onclick=function(){
+    try{ if(window.MX_LITE&&typeof window.MX_LITE.toggle==='function') window.MX_LITE.toggle(); }catch(e){}
+    var on=window.MX_LITE&&window.MX_LITE.on;
+    if(on)setSeal10(); else setSeal50();
+  };
+}
+/* ---------- ③ 杉杉双击缩放（去+-后保留能力） ---------- */
+function bindRoamZoom(){
+  var t=0,w=setInterval(function(){
+    t++;
+    var el=byId('mxRoam');
+    if(el&&!el.dataset.v190z){
+      el.dataset.v190z='1';
+      var body=el.querySelector('.rm-body');
+      if(body){
+        /* 单击=拖拽/助理由原逻辑处理；这里仅双击缩放，不干扰单击 */
+        body.addEventListener('dblclick',function(e){
+          e.stopPropagation();
+          var cur=parseFloat(el.dataset.scale||'1');
+          var nx=cur>=1.6?0.7:(cur+0.45);
+          el.dataset.scale=nx;
+          try{ if(window.MX_ROAM&&window.MX_ROAM.scale) window.MX_ROAM.scale(nx); }catch(err){}
+          /* 兜底：直接改 transform scale */
+          try{ var s=el.style.transform||''; if(!s) s='translate('+(parseFloat(el.dataset.x)||0)+'px,'+(parseFloat(el.dataset.y)||0)+'px)';
+            el.style.transform=s.replace(/scale\([^)]*\)/,'')+' scale('+nx+')'; }catch(err){}
+        });
+      }
+      clearInterval(w);
+    }
+    if(t>40)clearInterval(w);
+  },250);
+}
+/* ---------- 启动 ---------- */
+var n=0,timer=setInterval(function(){
+  n++;
+  if(byId('btnWorldMap'))moveFootprint();
+  if(byId('seal')&&!window.__v190SealInit){window.__v190SealInit=true;setSeal10();bindSeal();watchCombo();}
+  bindRoamZoom();
+  if(n>16)clearInterval(timer);
+},400);
+window.MX_V190={seal10:setSeal10,seal50:setSeal50,moveFootprint:moveFootprint};
+})();
+</script>
+<!-- ============ v190 END ============ -->
+
+
+
 </body>
 </html>
